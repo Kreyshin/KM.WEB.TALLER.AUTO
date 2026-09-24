@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import DibujoVehiculo from '@/components/inspeccion/DibujoVehiculo.vue'
+import DiagramaVehiculo from '@/components/inspeccion/DiagramaVehiculo.vue'
+import MostradorRecepcion from '@/components/recepcion/MostradorRecepcion.vue'
 import FirmaCliente from '@/components/inspeccion/FirmaCliente.vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
@@ -21,8 +22,10 @@ import type {
   MarcaInspeccion,
   OrdenResuelta,
   TipoDanio,
+  VistaVehiculo,
 } from '@/types'
-import { desdeHace, formatearKm } from '@/utils/formato'
+import { etiquetaZona } from '@/utils/carroceria'
+import { formatearKm } from '@/utils/formato'
 import {
   etiquetaDanio,
   etiquetaPunto,
@@ -60,7 +63,6 @@ const guardando = ref(false)
 const errores = ref<Record<string, string>>({})
 
 const herramienta = ref<TipoDanio>('rayon')
-const notaMarca = ref('')
 
 const hoja = ref<Inspeccion>(nuevaHoja())
 
@@ -124,16 +126,16 @@ watch([ordenId, () => localStore.localId], cargar)
 
 // ── El dibujo ────────────────────────────────────────────────────────────────
 
-function marcar(x: number, y: number) {
+function marcar(vista: VistaVehiculo, zona: string, x: number, y: number) {
   const marca: MarcaInspeccion = {
     id: `m${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+    vista,
+    zona,
     x,
     y,
     tipo: herramienta.value,
-    nota: notaMarca.value.trim() || undefined,
   }
   hoja.value.marcas = [...hoja.value.marcas, marca]
-  notaMarca.value = ''
 }
 
 function quitarMarca(id: string) {
@@ -183,43 +185,12 @@ async function guardar() {
 </script>
 
 <template>
-  <!-- Lista: qué falta por recibir -->
-  <KmCard
+  <!-- El mostrador: se empieza por la placa, no por el coche ya sabido. -->
+  <MostradorRecepcion
     v-if="!ordenId"
-    titulo="Recepción de vehículos"
-    subtitulo="La vuelta al vehículo, antes de tocarlo. Es lo que separa «entró así» de «se lo rayaron aquí»."
-  >
-    <p v-if="cargando" class="py-10 text-center text-sm text-tenue">Cargando…</p>
-    <p v-else-if="!pendientes.length" class="py-10 text-center text-sm text-verde">
-      ✓ Todo lo que está en el taller tiene su hoja de ingreso firmada.
-    </p>
-
-    <ul v-else class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      <li v-for="o in pendientes" :key="o.id">
-        <button
-          type="button"
-          class="flex w-full flex-col rounded-card border border-linea bg-panel-2 p-4 text-left transition-colors hover:border-acero"
-          @click="router.push({ name: 'recepcion', params: { ordenId: o.id } })"
-        >
-          <span class="flex items-center justify-between gap-3">
-            <span
-              class="ts-placa rounded-[4px] border-2 border-tinta px-1.5 py-0.5 text-xs text-tinta"
-            >
-              {{ o.vehiculo?.placa ?? '—' }}
-            </span>
-            <span class="text-xs text-tenue">{{ desdeHace(o.ingreso) }}</span>
-          </span>
-          <span class="mt-2 text-sm font-medium text-tinta">
-            {{ o.vehiculo?.marca }} {{ o.vehiculo?.modelo }}
-          </span>
-          <span class="text-xs text-tenue">{{ o.cliente?.nombre }} · {{ o.codigo }}</span>
-          <span class="mt-3">
-            <KmBadge tono="ambar">⚠ Sin hoja firmada</KmBadge>
-          </span>
-        </button>
-      </li>
-    </ul>
-  </KmCard>
+    :local-id="localStore.localId ?? ''"
+    @recibida="(id) => router.push({ name: 'recepcion', params: { ordenId: id } })"
+  />
 
   <!-- La hoja -->
   <div v-else-if="orden" class="ts-operacion flex flex-col gap-5">
@@ -246,7 +217,7 @@ async function guardar() {
       </KmButton>
     </header>
 
-    <div class="grid gap-5 xl:grid-cols-[minmax(0,26rem)_1fr]">
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,32rem)_1fr]">
       <!-- Columna izquierda: el coche -->
       <KmCard titulo="La vuelta al vehículo" subtitulo="Marca sobre el dibujo lo que ya venía así.">
         <!-- Elegir qué se marca antes de marcarlo, como el bolígrafo de colores. -->
@@ -267,33 +238,25 @@ async function guardar() {
           </button>
         </div>
 
-        <DibujoVehiculo
-          :marcas="hoja.marcas"
-          :herramienta="herramienta"
-          @marcar="marcar"
-          @quitar="quitarMarca"
-        />
+        <DiagramaVehiculo :marcas="hoja.marcas" @marcar="marcar" @quitar="quitarMarca" />
 
-        <KmField
-          v-slot="{ id }"
-          label="Nota de la próxima marca"
-          ayuda="Se adjunta al siguiente daño que señales."
-          class="mt-4"
-        >
-          <KmInput :id="id" v-model="notaMarca" placeholder="Rayón profundo, 20 cm" />
-        </KmField>
-
-        <ul v-if="hoja.marcas.length" class="mt-4 flex flex-col gap-1.5">
+        <!--
+          La nota va detrás de la marca, no delante: primero se señala el
+          golpe y luego se describe, que es el orden en que se mira un coche.
+        -->
+        <ul v-if="hoja.marcas.length" class="mt-4 flex flex-col gap-2">
           <li
             v-for="(m, i) in hoja.marcas"
             :key="m.id"
-            class="flex items-center gap-2 rounded-control border border-linea bg-panel-2 px-3 py-1.5"
+            class="flex flex-wrap items-center gap-2 rounded-control border border-linea bg-panel-2 px-3 py-2"
           >
             <span class="ts-placa w-5 text-[10px] text-tenue">{{ i + 1 }}</span>
             <KmBadge :tono="tonoDanio[m.tipo]">
               {{ glifoDanio[m.tipo] }} {{ etiquetaDanio[m.tipo] }}
             </KmBadge>
-            <span class="min-w-0 flex-1 truncate text-xs text-tenue">{{ m.nota ?? '' }}</span>
+            <span class="min-w-0 flex-1 truncate text-xs font-medium text-tinta">
+              {{ etiquetaZona(m.zona) }}
+            </span>
             <button
               type="button"
               class="text-[11px] font-semibold text-tenue hover:text-rojo-texto"
@@ -301,6 +264,12 @@ async function guardar() {
             >
               Quitar
             </button>
+            <KmInput
+              v-model="m.nota"
+              class="w-full text-xs"
+              :aria-label="`Nota del daño en ${etiquetaZona(m.zona)}`"
+              placeholder="Añade el detalle: «rayón profundo, 20 cm»"
+            />
           </li>
         </ul>
         <p v-else class="mt-4 text-center text-xs text-tenue">

@@ -277,11 +277,27 @@ export interface BahiaResuelta extends Bahia {
  * separa «se lo rayaron en el taller» de «entró así», y es el documento que
  * todo taller hace a mano y nadie digitaliza.
  */
+/**
+ * Las tres vistas de la hoja: los dos costados y la planta. Cubren la
+ * carrocería entera sin pedirle al asesor que gire nada mentalmente.
+ */
+export type VistaVehiculo = 'izquierda' | 'planta' | 'derecha'
+
 export type TipoDanio = 'rayon' | 'abolladura' | 'rotura' | 'oxido' | 'faltante'
 
 export interface MarcaInspeccion {
   id: string
-  /** Posición sobre el dibujo del vehículo, en % del contenedor (0–100). */
+  /** Qué vista del vehículo: costado izquierdo, planta o costado derecho. */
+  vista: VistaVehiculo
+  /**
+   * La pieza tocada, con su nombre de taller: `izquierda.puerta-delantera`.
+   *
+   * Es lo que convierte «algo por aquí» en «rayón en la puerta delantera
+   * izquierda»: así se lo dices al cliente, así se presupuesta y así se puede
+   * contar cuántos vehículos entran con el paragolpes tocado.
+   */
+  zona: string
+  /** Punto exacto dentro de la vista, en % (0–100). Afina, no sustituye a `zona`. */
   x: number
   y: number
   tipo: TipoDanio
