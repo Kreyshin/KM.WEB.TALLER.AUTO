@@ -36,9 +36,12 @@ export const almacenService = {
     return items
   },
 
-  /** Lo que hay que reponer hoy: por debajo del mínimo o directamente agotado. */
+  /**
+   * Lo que hay que reponer hoy. El mínimo es el punto de pedido, así que estar
+   * justo en él ya cuenta: esperar a bajar de ahí es llegar tarde.
+   */
   async bajoMinimo(): Promise<Repuesto[]> {
-    return latencia(db.repuestos.filter((r) => r.activo && r.stock < r.stockMinimo))
+    return latencia(db.repuestos.filter((r) => r.activo && r.stock <= r.stockMinimo))
   },
 
   async movimientos(repuestoId?: string): Promise<Movimiento[]> {
