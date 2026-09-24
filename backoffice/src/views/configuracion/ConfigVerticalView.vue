@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import FilaParametro from '@/components/configuracion/FilaParametro.vue'
+import KmAyuda from '@/components/ui/KmAyuda.vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
 import { gruposParametros, parametrosService } from '@/services/parametros.service'
@@ -165,18 +166,32 @@ async function restablecer(clave: string) {
 
 <template>
   <div class="flex flex-col gap-5 pb-24">
-    <header>
+    <!--
+      La explicación de cómo funciona la pantalla hace falta la primera vez y
+      estorba las cien siguientes, así que vive en la ayuda del título en vez
+      de empujar hacia abajo los parámetros, que es a lo que se viene.
+    -->
+    <header class="flex items-center gap-2">
       <h2 class="ts-titulo-pagina text-tinta">Configuración del taller</h2>
-      <p class="mt-1 max-w-3xl text-sm text-tenue">
-        Las reglas con las que trabaja toda la cadena. Lo que se fija aquí vale en todos los
-        talleres; los parámetros marcados como
-        <strong class="text-tinta">«cada taller puede cambiarlo»</strong> son el punto de partida y
-        cada sede podrá apartarse de ellos en su propia pantalla.
-      </p>
-      <p v-if="conErp" class="mt-2 max-w-3xl text-sm text-tenue">
-        {{ conErp }} de estos parámetros tienen una versión avanzada en un módulo del ERP. Está
-        dicho en cada uno, para que se vea qué se puede hacer hoy y qué daría ir más lejos.
-      </p>
+      <KmAyuda titulo="Cómo funciona esta pantalla" etiqueta="Cómo funciona esta pantalla">
+        <p>
+          Las reglas con las que trabaja <strong>toda la cadena</strong>. Lo que se fija aquí vale
+          en todos los talleres.
+        </p>
+        <p>
+          Los parámetros marcados como <strong>«cada taller puede cambiarlo»</strong> son el punto
+          de partida: cada sede podrá apartarse de ellos en su propia pantalla.
+        </p>
+        <p v-if="conErp">
+          <strong>{{ conErp }}</strong> de estos parámetros tienen una versión avanzada en un módulo
+          del ERP. Está dicho en cada uno, para que se vea qué se puede hacer hoy y qué daría ir más
+          lejos.
+        </p>
+        <p>
+          Los cambios se acumulan y se guardan al final: puedes descartarlos enteros sin haber roto
+          nada.
+        </p>
+      </KmAyuda>
     </header>
 
     <p v-if="cargando" class="py-16 text-center text-sm text-tenue">Cargando la configuración…</p>
