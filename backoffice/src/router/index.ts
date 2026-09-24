@@ -43,6 +43,12 @@ const rutas: RouteRecordRaw[] = [
 
       // ── Taller ──────────────────────────────────────────────────────────
       {
+        path: 'recepcion/:ordenId?',
+        name: 'recepcion',
+        component: () => import('@/views/taller/RecepcionView.vue'),
+        meta: { titulo: 'Recepción de vehículos' },
+      },
+      {
         path: 'ordenes',
         name: 'ordenes',
         component: () => import('@/views/taller/OrdenesView.vue'),

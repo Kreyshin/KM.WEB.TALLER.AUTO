@@ -62,6 +62,7 @@ export default defineConfig({
             { text: 'Resumen', link: '/modulos/' },
             { text: 'Inicio · El taller hoy', link: '/modulos/inicio' },
             { text: 'Tablero de bahías', link: '/modulos/tablero' },
+            { text: 'Recepción · hoja de ingreso', link: '/modulos/recepcion' },
             { text: 'Órdenes de trabajo', link: '/modulos/ordenes' },
             { text: 'Detenidas', link: '/modulos/detenidas' },
             { text: 'Carga de técnicos', link: '/modulos/tecnicos' },
