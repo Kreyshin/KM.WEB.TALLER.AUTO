@@ -93,7 +93,7 @@ const cambiosPorGrupo = computed(() => {
 const personalizadosPorGrupo = computed(() => {
   const mapa: Record<string, number> = {}
   for (const p of parametros.value) {
-    if (p.origen === 'propio') {
+    if (p.origen === 'cadena') {
       mapa[p.definicion.grupo] = (mapa[p.definicion.grupo] ?? 0) + 1
     }
   }

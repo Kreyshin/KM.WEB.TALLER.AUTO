@@ -159,3 +159,102 @@ describe('impacto antes de guardar', () => {
     expect(aviso.some((a) => a.fase === 'reparacion')).toBe(false)
   })
 })
+
+/**
+ * Los dos niveles.
+ *
+ * Lo que se comprueba no es que se guarde en dos sitios: es que la herencia
+ * siga viva. Una sede que copia el valor de la cadena deja de heredar sin que
+ * nadie se entere, y ese es el fallo que arruina una configuración multisede.
+ */
+describe('cascada local → cadena → fábrica', () => {
+  const LOCAL_B = 'l2'
+
+  it('sin valor propio, la sede hereda lo que diga la cadena', async () => {
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 24 })
+    const resuelto = (await parametrosService.listarLocal(LOCAL)).find(
+      (p) => p.definicion.clave === 'ordenes.avisoPromesaHoras',
+    )
+    expect(resuelto?.valor).toBe(24)
+    expect(resuelto?.origen).toBe('cadena')
+  })
+
+  it('una sede puede apartarse sin arrastrar a las demás', async () => {
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 24 })
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 4 }, LOCAL)
+
+    expect(parametrosService.valor('ordenes.avisoPromesaHoras', LOCAL)).toBe(4)
+    expect(parametrosService.valor('ordenes.avisoPromesaHoras', LOCAL_B)).toBe(24)
+    expect(parametrosService.valor('ordenes.avisoPromesaHoras')).toBe(24)
+  })
+
+  it('volver a lo heredado borra el valor propio en vez de copiarlo', async () => {
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 24 })
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 4 }, LOCAL)
+    // Guardar exactamente lo que dice la cadena tiene que devolver la herencia.
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 24 }, LOCAL)
+
+    expect(db.configuracion.locales[LOCAL]?.['ordenes.avisoPromesaHoras']).toBeUndefined()
+
+    // Y la prueba de que hereda de verdad: la cadena cambia y le llega.
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 12 })
+    expect(parametrosService.valor('ordenes.avisoPromesaHoras', LOCAL)).toBe(12)
+  })
+
+  it('restablecer en la sede la devuelve a la cadena, no a fábrica', async () => {
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 24 })
+    await parametrosService.guardar({ 'ordenes.avisoPromesaHoras': 4 }, LOCAL)
+    await parametrosService.restablecer('ordenes.avisoPromesaHoras', LOCAL)
+    expect(parametrosService.valor('ordenes.avisoPromesaHoras', LOCAL)).toBe(24)
+  })
+
+  it('una sede no puede apartarse de lo que decide la cadena', async () => {
+    await expect(
+      parametrosService.guardar({ 'recepcion.hojaObligatoria': false }, LOCAL),
+    ).rejects.toMatchObject({ campos: { 'recepcion.hojaObligatoria': expect.any(String) } })
+  })
+
+  it('un parámetro de alcance vertical ignora la capa local aunque la haya', () => {
+    db.configuracion.locales[LOCAL] = { 'recepcion.hojaObligatoria': false }
+    expect(parametrosService.valor('recepcion.hojaObligatoria', LOCAL)).toBe(true)
+  })
+
+  it('listarLocal sólo ofrece lo que una sede puede decidir', async () => {
+    const items = await parametrosService.listarLocal(LOCAL)
+    expect(items.length).toBeGreaterThan(0)
+    for (const p of items) expect(p.definicion.alcance).toBe('local')
+  })
+})
+
+/** Las acciones rápidas de la pantalla de órdenes son configuración, no código. */
+describe('acciones rápidas de órdenes', () => {
+  it('cada sede decide qué se puede hacer sin abrir la ficha', async () => {
+    await parametrosService.guardar({ 'ordenes.accionesRapidas': ['avanzar'] }, LOCAL)
+    expect(parametrosService.valor('ordenes.accionesRapidas', LOCAL)).toEqual(['avanzar'])
+    // Otra sede conserva lo que trae de fábrica.
+    expect(parametrosService.valor('ordenes.accionesRapidas', 'l2')).toEqual(['avanzar', 'detener'])
+  })
+
+  it('mover la fecha prometida exige motivo cuando la cadena lo pide', async () => {
+    const orden = db.ordenes.find((o) => o.localId === LOCAL)!
+    const manana = new Date(Date.now() + 86_400_000).toISOString()
+
+    await expect(ordenesService.reprogramar(orden.id, manana)).rejects.toMatchObject({
+      campos: { motivo: expect.any(String) },
+    })
+
+    await parametrosService.guardar({ 'ordenes.motivoAlReprogramar': false })
+    await expect(ordenesService.reprogramar(orden.id, manana)).resolves.toBeDefined()
+  })
+
+  it('con motivo queda escrito quién y cuándo lo movió', async () => {
+    const orden = db.ordenes.find((o) => o.localId === LOCAL)!
+    const manana = new Date(Date.now() + 86_400_000).toISOString()
+    await ordenesService.reprogramar(orden.id, manana, 'El repuesto llega tarde')
+
+    const guardada = db.ordenes.find((o) => o.id === orden.id)!
+    expect(guardada.promesa).toBe(manana)
+    expect(guardada.promesaMotivo).toBe('El repuesto llega tarde')
+    expect(guardada.promesaCambiadaEl).toBeTruthy()
+  })
+})

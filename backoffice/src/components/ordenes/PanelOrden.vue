@@ -264,7 +264,7 @@ const quitar = (itemId: string) =>
 
       <!-- Detención: si la hay, manda sobre todo lo demás. -->
       <div v-if="orden.detencion" class="ts-tono ts-tono-rojo rounded-card border p-4">
-        <p class="ts-etiqueta">⏸ Detenida · {{ etiquetaDetencion[orden.detencion] }}</p>
+        <p class="ts-etiqueta">‖ Detenida · {{ etiquetaDetencion[orden.detencion] }}</p>
         <p class="ts-display mt-1 text-lg leading-tight font-semibold">
           {{ salidaDetencion[orden.detencion] }}
         </p>

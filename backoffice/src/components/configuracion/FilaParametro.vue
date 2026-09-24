@@ -24,11 +24,25 @@ const props = defineProps<{
   /** Valor en edición, que puede diferir del guardado. */
   valor: ValorParametro
   modificado: boolean
+  /**
+   * En qué pantalla se está editando. La misma fila sirve para la cadena y
+   * para una sede; lo único que cambia es qué cuenta como «propio» y a dónde
+   * se vuelve al restablecer.
+   */
+  nivel?: 'cadena' | 'local'
 }>()
 
 const emit = defineEmits<{ cambiar: [ValorParametro]; restablecer: [] }>()
 
 const d = computed(() => props.parametro.definicion)
+
+/** El valor está fijado en el nivel que se está editando, no heredado. */
+const esPropio = computed(
+  () => props.parametro.origen === (props.nivel === 'local' ? 'local' : 'cadena'),
+)
+
+/** Una sede sin valor propio no tiene un hueco: hereda, y conviene decirlo. */
+const heredado = computed(() => props.nivel === 'local' && !esPropio.value)
 
 function alternarOpcionMultiple(valor: string) {
   const actuales = Array.isArray(props.valor) ? props.valor : []
@@ -46,7 +60,10 @@ function alternarOpcionMultiple(valor: string) {
         <div class="flex flex-wrap items-center gap-2">
           <p class="font-medium text-tinta">{{ d.etiqueta }}</p>
           <KmBadge v-if="modificado" tono="ambar">Sin guardar</KmBadge>
-          <KmBadge v-else-if="parametro.origen === 'propio'" tono="acero">Personalizado</KmBadge>
+          <KmBadge v-else-if="esPropio" tono="acero">
+            {{ nivel === 'local' ? 'Propio de esta sede' : 'Personalizado' }}
+          </KmBadge>
+          <KmBadge v-else-if="heredado" tono="neutro">↑ Heredado de la cadena</KmBadge>
           <!-- Un parámetro de alcance local se fija aquí y cada sede puede apartarse. -->
           <span v-if="d.alcance === 'local'" class="text-[10px] font-semibold text-tenue">
             · cada taller puede cambiarlo
@@ -160,13 +177,13 @@ function alternarOpcionMultiple(valor: string) {
       <span class="text-xs">Añade {{ d.erp.que }}</span>
     </div>
 
-    <div v-if="parametro.origen === 'propio' && !modificado">
+    <div v-if="esPropio && !modificado">
       <button
         type="button"
         class="text-xs font-semibold text-tenue underline underline-offset-2 hover:text-tinta"
         @click="emit('restablecer')"
       >
-        Volver al valor de fábrica
+        {{ nivel === 'local' ? 'Volver a lo que diga la cadena' : 'Volver al valor de fábrica' }}
       </button>
     </div>
   </div>
