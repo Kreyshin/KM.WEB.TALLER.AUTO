@@ -8,6 +8,7 @@ import type {
   NuevaOrden,
   OrdenResuelta,
   OrdenTrabajo,
+  PrioridadOrden,
   Paginado,
 } from '@/types'
 import { fasesActivas, siguienteFase } from '@/utils/ordenes'
@@ -199,6 +200,37 @@ export const ordenesService = {
   },
 
   /** Asigna bahía y técnico; una bahía no operativa no admite trabajo. */
+  /**
+   * Mueve la fecha prometida.
+   *
+   * La promesa es el compromiso del taller con el cliente, así que moverla no
+   * es editar un campo: es romper algo y decir por qué. Cuando la
+   * configuración lo exige, sin motivo no se mueve.
+   */
+  async reprogramar(id: string, promesa: string, motivo?: string): Promise<OrdenTrabajo> {
+    const orden = db.ordenes.find((o) => o.id === id)
+    if (!orden) throw { mensaje: 'Orden no encontrada.' }
+
+    if (parametrosService.valor<boolean>('ordenes.motivoAlReprogramar') && !motivo?.trim()) {
+      throw errorCampo('motivo', 'Escribe por qué se mueve la fecha prometida.')
+    }
+
+    orden.promesa = promesa
+    orden.promesaMotivo = motivo?.trim() || undefined
+    orden.promesaCambiadaEl = new Date().toISOString()
+    persistir()
+    return latencia(orden)
+  },
+
+  /** Sube o baja una orden en la cola del taller. */
+  async cambiarPrioridad(id: string, prioridad: PrioridadOrden): Promise<OrdenTrabajo> {
+    const orden = db.ordenes.find((o) => o.id === id)
+    if (!orden) throw { mensaje: 'Orden no encontrada.' }
+    orden.prioridad = prioridad
+    persistir()
+    return latencia(orden)
+  },
+
   async asignar(id: string, bahiaId?: string, tecnicoId?: string): Promise<OrdenTrabajo> {
     if (bahiaId) {
       const bahia = db.bahias.find((b) => b.id === bahiaId)

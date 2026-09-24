@@ -27,7 +27,7 @@ escondido: así se ve **qué se puede hacer hoy** y **qué daría ir más lejos*
 ## Cómo está organizada
 
 Un carril a la izquierda con los grupos, en el orden en que se recorre el
-trabajo —Recepción, Presupuesto, Taller, Almacén, Entrega, Agenda,
+trabajo —Recepción, Presupuesto, Órdenes, Taller, Almacén, Entrega, Agenda,
 Documentos—, no por orden alfabético.
 
 Junto a cada grupo, un **punto ámbar** si tiene cambios sin guardar, o el
@@ -94,9 +94,38 @@ No es una pantalla de adorno. Lo que se fija aquí lo obedecen los servicios:
 | Aprobar línea por línea          | Enseña u oculta el botón de aprobar cada línea del presupuesto |
 | Duración por defecto de una cita | Lo que la agenda reserva de bahía al agendar                   |
 
+## La cascada: sede → cadena → fábrica
+
+Un parámetro se resuelve siempre en tres escalones, y se usa el primero que
+tenga valor:
+
+1. **La sede**, si se apartó de la cadena. Solo para los parámetros marcados
+   «cada taller puede cambiarlo».
+2. **La cadena**, que es lo que se decide en esta pantalla.
+3. **La fábrica**, lo que trae Torque de serie.
+
+Los parámetros de alcance **cadena** ni siquiera miran el escalón de la sede:
+es lo que mantiene coherente a toda la organización. Una sede no puede decidir
+que en su taller la hoja de ingreso no hace falta.
+
+::: warning Heredar no es tener el mismo valor
+Cuando una sede vuelve al valor de la cadena, su valor propio **se borra**, no
+se copia. Si se copiara, la sede dejaría de heredar sin que nadie se enterase:
+la cadena cambiaría meses después y esa sede se quedaría anclada al valor
+viejo, sin que nada en pantalla lo explicase.
+
+Por eso en la pantalla de la sede cada parámetro heredado lo dice —_↑ heredado
+de la cadena_— en vez de aparecer como un campo relleno más.
+:::
+
 ## Configuración por taller
 
 Los parámetros marcados **«cada taller puede cambiarlo»** se fijan aquí como
 punto de partida de la cadena. Cada sede tendrá su propia pantalla para
 apartarse de ellos cuando su realidad sea distinta —un taller de barrio y uno
 de flota no trabajan igual—, y lo que no toque seguirá heredando lo de aquí.
+
+El grupo **Órdenes** es el mejor ejemplo de la línea: qué atajos tiene cada
+mostrador, cómo se listan las órdenes y cuándo avisa una entrega dependen de
+cómo trabaje esa sede; exigir motivo al aplazar es una regla de la casa y no se
+negocia por local.

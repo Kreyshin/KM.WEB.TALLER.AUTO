@@ -99,7 +99,7 @@ async function reanudar(orden: OrdenResuelta) {
 
     <section v-for="grupo in grupos" :key="grupo.motivo">
       <header class="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 class="ts-titulo-seccion text-tinta">⏸ {{ etiquetaDetencion[grupo.motivo] }}</h2>
+        <h2 class="ts-titulo-seccion text-tinta">‖ {{ etiquetaDetencion[grupo.motivo] }}</h2>
         <span class="text-sm text-tenue">{{ salidaDetencion[grupo.motivo] }}</span>
         <span class="ts-etiqueta ml-auto text-tenue">
           {{ grupo.ordenes.length }} {{ grupo.ordenes.length === 1 ? 'orden' : 'órdenes' }}

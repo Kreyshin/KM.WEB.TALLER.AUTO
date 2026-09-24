@@ -192,6 +192,110 @@ export const definiciones: DefinicionParametro[] = [
     porDefecto: 15,
   },
 
+  // ── Órdenes: cómo se miran y qué se puede hacer sin abrir la ficha ─────────
+  {
+    clave: 'ordenes.vista',
+    etiqueta: 'Cómo se listan las órdenes',
+    descripcion: 'La forma por defecto de la pantalla de órdenes de trabajo.',
+    escenario:
+      'Las tarjetas se leen de un vistazo y de lejos, que es como trabaja un asesor de pie en el mostrador. La tabla cabe más en pantalla y se ordena mejor, que es como trabaja un jefe de taller sentado. Cada sede elige la suya.',
+    alcance: 'local',
+    grupo: 'Órdenes',
+    tipo: 'opcion',
+    opciones: [
+      {
+        valor: 'tarjetas',
+        etiqueta: 'Tarjetas',
+        descripcion: 'Una ficha por orden, con su avance.',
+      },
+      { valor: 'tabla', etiqueta: 'Tabla', descripcion: 'Densa, ordenable, más filas a la vista.' },
+    ],
+    porDefecto: 'tarjetas',
+  },
+  {
+    clave: 'ordenes.agrupar',
+    etiqueta: 'Por dónde se agrupan',
+    descripcion: 'Qué pregunta contesta primero la pantalla.',
+    escenario:
+      'Agrupar por compromiso pone arriba lo que se pasa de hora, que es lo que quema. Por fase enseña el embudo: dónde se atasca el trabajo. Por prioridad sirve cuando el taller vende urgencias.',
+    alcance: 'local',
+    grupo: 'Órdenes',
+    tipo: 'opcion',
+    opciones: [
+      {
+        valor: 'compromiso',
+        etiqueta: 'Por compromiso',
+        descripcion: 'Atrasadas, hoy, esta semana, sin fecha.',
+      },
+      { valor: 'fase', etiqueta: 'Por fase', descripcion: 'Dónde se atasca el trabajo.' },
+      { valor: 'prioridad', etiqueta: 'Por prioridad', descripcion: 'Urgentes primero.' },
+      { valor: 'ninguno', etiqueta: 'Sin agrupar', descripcion: 'Una sola lista corrida.' },
+    ],
+    porDefecto: 'compromiso',
+  },
+  {
+    clave: 'ordenes.accionesRapidas',
+    etiqueta: 'Qué se puede hacer sin abrir la ficha',
+    descripcion: 'Acciones que aparecen en la propia tarjeta de la orden.',
+    escenario:
+      'Un atajo ahorra clics y también quita la pausa que hace pensar. Deja sólo lo que tu equipo pueda hacer de pie y sin consultar: lo que no esté marcado sigue estando en la ficha, con su contexto delante.',
+    alcance: 'local',
+    grupo: 'Órdenes',
+    tipo: 'multiple',
+    opciones: [
+      {
+        valor: 'avanzar',
+        etiqueta: 'Avanzar de fase',
+        descripcion: 'Respeta igualmente las reglas de aprobación y hoja firmada.',
+      },
+      {
+        valor: 'detener',
+        etiqueta: 'Detener y reanudar',
+        descripcion: 'Marcar por qué no avanza, sin entrar a la orden.',
+      },
+      {
+        valor: 'prioridad',
+        etiqueta: 'Cambiar la prioridad',
+        descripcion: 'Subir o bajar una orden en la cola del taller.',
+      },
+      {
+        valor: 'reprogramar',
+        etiqueta: 'Mover la fecha prometida',
+        descripcion: 'Lo que más molesta al cliente: piénsalo antes de repartirlo.',
+      },
+    ],
+    porDefecto: ['avanzar', 'detener'],
+  },
+  {
+    clave: 'ordenes.avisoPromesaHoras',
+    etiqueta: 'Cuándo una entrega «se acerca»',
+    descripcion: 'Horas antes de la fecha prometida en que la orden empieza a avisar.',
+    escenario:
+      'Por debajo de este margen la orden se marca en ámbar y sube en la lista. Un taller que entrega el mismo día lo quiere corto; uno de chapa y pintura, largo.',
+    alcance: 'local',
+    grupo: 'Órdenes',
+    tipo: 'numero',
+    unidad: 'horas',
+    minimo: 1,
+    maximo: 72,
+    porDefecto: 8,
+  },
+  {
+    clave: 'ordenes.motivoAlReprogramar',
+    etiqueta: 'Exigir motivo al mover la fecha prometida',
+    descripcion: 'Nadie cambia la promesa sin dejar escrito por qué.',
+    escenario:
+      'Una fecha que se mueve sin rastro convierte «tardamos una semana» en algo que nadie puede revisar. Con esto, cada aplazamiento queda con su motivo, su autor y su hora, y al final del mes se puede ver de qué se aplaza siempre.',
+    alcance: 'vertical',
+    grupo: 'Órdenes',
+    tipo: 'booleano',
+    erp: {
+      modulo: 'Cumplimiento',
+      que: 'el histórico completo de aplazamientos por técnico, causa y cliente, con el indicador de promesas cumplidas.',
+    },
+    porDefecto: true,
+  },
+
   // ── El flujo del taller ────────────────────────────────────────────────────
   {
     clave: 'taller.fases',
@@ -508,6 +612,7 @@ export const definiciones: DefinicionParametro[] = [
 export const gruposParametros = [
   'Recepción',
   'Presupuesto',
+  'Órdenes',
   'Taller',
   'Almacén',
   'Entrega',
@@ -563,27 +668,54 @@ function validar(definicion: DefinicionParametro, valor: ValorParametro) {
   }
 }
 
+/**
+ * La cascada: **local → cadena → fábrica**.
+ *
+ * Un parámetro de alcance `vertical` vale igual en todas las sedes y el nivel
+ * local ni se consulta: es lo que mantiene coherente la cadena. Uno de alcance
+ * `local` admite que una sede se aparte, y sólo entonces se mira su capa.
+ *
+ * Que la sede no tenga valor propio no es un hueco: es herencia. Por eso el
+ * valor heredado se muestra siempre, con su origen, en lugar de dejar el campo
+ * en blanco.
+ */
+function resolver(definicion: DefinicionParametro, localId?: string): ParametroResuelto {
+  if (localId && definicion.alcance === 'local') {
+    const propio = db.configuracion.locales[localId]?.[definicion.clave]
+    if (propio !== undefined) return { definicion, valor: propio, origen: 'local' }
+  }
+  const cadena = db.configuracion.vertical[definicion.clave]
+  if (cadena !== undefined) return { definicion, valor: cadena, origen: 'cadena' }
+  return { definicion, valor: definicion.porDefecto, origen: 'defecto' }
+}
+
 export const parametrosService = {
-  /** Todas las definiciones con su valor resuelto y de dónde sale. */
-  async listar(): Promise<ParametroResuelto[]> {
-    const propios = db.configuracion.vertical
+  /**
+   * Todas las definiciones con su valor resuelto y de dónde sale.
+   *
+   * Con `localId` contesta lo que rige **en esa sede**; sin él, lo que decide
+   * la cadena.
+   */
+  async listar(localId?: string): Promise<ParametroResuelto[]> {
+    return latencia(definiciones.map((d) => resolver(d, localId)))
+  },
+
+  /** Sólo lo que una sede puede decidir por su cuenta. */
+  async listarLocal(localId: string): Promise<ParametroResuelto[]> {
     return latencia(
-      definiciones.map((definicion) => {
-        const propio = propios[definicion.clave]
-        return {
-          definicion,
-          valor: propio !== undefined ? propio : definicion.porDefecto,
-          origen: propio !== undefined ? ('propio' as const) : ('defecto' as const),
-        }
-      }),
+      definiciones.filter((d) => d.alcance === 'local').map((d) => resolver(d, localId)),
     )
   },
 
-  /** El valor vigente de un parámetro, para que lo consulte cualquier servicio. */
-  valor<T extends ValorParametro>(clave: string): T {
-    const definicion = porClave(clave)
-    const propio = db.configuracion.vertical[clave]
-    return (propio !== undefined ? propio : definicion.porDefecto) as T
+  /**
+   * El valor vigente, para que lo consulte cualquier servicio.
+   *
+   * Quien pregunta por una sede pasa su `localId`; quien pregunta por la regla
+   * de la cadena, no. Es la misma función a propósito: si un servicio olvida
+   * el local, obtiene la regla de la cadena, que es el valor seguro.
+   */
+  valor<T extends ValorParametro>(clave: string, localId?: string): T {
+    return resolver(porClave(clave), localId).valor as T
   },
 
   /**
@@ -593,25 +725,55 @@ export const parametrosService = {
    * configurar es una sesión, no veinte operaciones sueltas, y así se puede
    * descartar todo sin haber roto nada.
    */
-  async guardar(cambios: Record<string, ValorParametro>): Promise<ParametroResuelto[]> {
+  async guardar(
+    cambios: Record<string, ValorParametro>,
+    localId?: string,
+  ): Promise<ParametroResuelto[]> {
     for (const [clave, valor] of Object.entries(cambios)) {
-      validar(porClave(clave), valor)
+      const definicion = porClave(clave)
+      validar(definicion, valor)
+      // Una sede no puede apartarse de lo que la cadena decide para todas.
+      if (localId && definicion.alcance !== 'local') {
+        throw errorCampo(
+          clave,
+          `«${definicion.etiqueta}» lo decide la cadena y vale igual en todas las sedes.`,
+        )
+      }
     }
+
+    const capa = localId ? (db.configuracion.locales[localId] ??= {}) : db.configuracion.vertical
 
     for (const [clave, valor] of Object.entries(cambios)) {
       const definicion = porClave(clave)
-      // Volver al valor de fábrica se guarda como ausencia, no como copia.
-      if (mismoValor(valor, definicion.porDefecto)) delete db.configuracion.vertical[clave]
-      else db.configuracion.vertical[clave] = valor
+      /*
+       * Volver a lo heredado se guarda como ausencia, no como copia. Si la
+       * sede guardase el valor de la cadena, dejaría de heredar: un cambio
+       * posterior de la cadena ya no le llegaría, y nadie entendería por qué.
+       */
+      const heredado = localId
+        ? (db.configuracion.vertical[clave] ?? definicion.porDefecto)
+        : definicion.porDefecto
+      if (mismoValor(valor, heredado)) delete capa[clave]
+      else capa[clave] = valor
     }
 
     persistir()
-    return this.listar()
+    return localId ? this.listarLocal(localId) : this.listar()
   },
 
-  /** Devuelve un parámetro a lo que trae la vertical de fábrica. */
-  async restablecer(clave: string): Promise<ParametroResuelto[]> {
+  /**
+   * Devuelve un parámetro a lo que hereda.
+   *
+   * Con `localId`, la sede vuelve a lo que diga la cadena; sin él, la cadena
+   * vuelve a lo que trae la vertical de fábrica.
+   */
+  async restablecer(clave: string, localId?: string): Promise<ParametroResuelto[]> {
     porClave(clave)
+    if (localId) {
+      delete db.configuracion.locales[localId]?.[clave]
+      persistir()
+      return this.listarLocal(localId)
+    }
     delete db.configuracion.vertical[clave]
     persistir()
     return this.listar()

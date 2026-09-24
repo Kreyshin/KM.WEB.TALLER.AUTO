@@ -187,7 +187,7 @@ async function avanzar(orden: OrdenResuelta) {
               {{ glifoFase[b.ordenTrabajo.fase] }} {{ etiquetaFase[b.ordenTrabajo.fase] }}
             </KmBadge>
             <KmBadge v-if="b.ordenTrabajo.detencion" tono="rojo">
-              ⏸ {{ etiquetaDetencion[b.ordenTrabajo.detencion] }}
+              ‖ {{ etiquetaDetencion[b.ordenTrabajo.detencion] }}
             </KmBadge>
           </div>
 

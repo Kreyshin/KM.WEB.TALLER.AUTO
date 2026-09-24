@@ -223,6 +223,9 @@ export interface OrdenTrabajo {
   ingreso: string
   /** ISO. Fecha prometida al cliente: de ella cuelga la confianza del taller. */
   promesa?: string
+  /** Por qué se movió la promesa la última vez, y cuándo se movió. */
+  promesaMotivo?: string
+  promesaCambiadaEl?: string
   /** ISO. Cuándo se entregó de verdad. */
   entrega?: string
   /** El cliente aprobó el presupuesto. Sin esto no se toca el vehículo. */
@@ -552,8 +555,13 @@ export interface ValoresConfiguracion {
 export interface ParametroResuelto {
   definicion: DefinicionParametro
   valor: ValorParametro
-  /** `propio`: fijado aquí. `defecto`: el que trae la vertical de fábrica. */
-  origen: 'propio' | 'defecto'
+  /**
+   * De dónde sale el valor vigente:
+   * - `local`: esta sede se apartó de la cadena.
+   * - `cadena`: lo decidió la vertical y vale para todas las sedes.
+   * - `defecto`: nadie lo ha tocado; es lo que trae de fábrica.
+   */
+  origen: 'local' | 'cadena' | 'defecto'
 }
 
 // ── Consulta y transporte ────────────────────────────────────────────────────
