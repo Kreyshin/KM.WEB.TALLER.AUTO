@@ -83,11 +83,11 @@ onBeforeUnmount(() => {
 <style scoped>
 .ts-drawer-enter-active,
 .ts-drawer-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity var(--km-mov-normal) var(--km-curva);
 }
 .ts-drawer-enter-active .ts-drawer-panel,
 .ts-drawer-leave-active .ts-drawer-panel {
-  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--km-mov-lento) var(--km-curva);
 }
 .ts-drawer-enter-from,
 .ts-drawer-leave-to {
