@@ -4,6 +4,7 @@ import KmBadge from '@/components/ui/KmBadge.vue'
 import KmCard from '@/components/ui/KmCard.vue'
 import KmField from '@/components/ui/KmField.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
+import { useCarga } from '@/composables/useCarga'
 import { catalogoService } from '@/services/catalogo.service'
 import { almacenService } from '@/services/almacen.service'
 import { useUiStore } from '@/stores/ui.store'
@@ -22,7 +23,7 @@ const ui = useUiStore()
 const planes = ref<PlanMantenimiento[]>([])
 const servicios = ref<Servicio[]>([])
 const repuestos = ref<Repuesto[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, terminar } = useCarga()
 
 /** Simulador: qué plan toca a un kilometraje dado. */
 const kilometraje = ref(30000)
@@ -39,7 +40,7 @@ onMounted(async () => {
   } catch {
     ui.error('No se pudieron cargar los planes de mantenimiento.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 })
 
@@ -74,7 +75,11 @@ function horasDe(plan: PlanMantenimiento) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div
+    class="flex flex-col gap-6"
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
+  >
     <!-- Simulador: el uso real del plan es «me entró un coche con X km». -->
     <KmCard
       titulo="¿Qué le toca a este vehículo?"

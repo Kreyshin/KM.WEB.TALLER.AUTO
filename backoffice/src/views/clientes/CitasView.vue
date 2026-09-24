@@ -11,6 +11,7 @@ import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
 import KmTabs from '@/components/ui/KmTabs.vue'
+import { useCarga } from '@/composables/useCarga'
 import { citasService } from '@/services/citas.service'
 import { parametrosService } from '@/services/parametros.service'
 import { vehiculosService } from '@/services/vehiculos.service'
@@ -38,7 +39,7 @@ const vista = ref('dia')
 
 const citas = ref<CitaResuelta[]>([])
 const vehiculos = ref<VehiculoResuelto[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 const abierto = ref(false)
 const guardando = ref(false)
 const errores = ref<Record<string, string>>({})
@@ -85,7 +86,7 @@ const minutos = computed(() =>
 async function cargar() {
   const localId = localStore.localId
   if (!localId) return
-  cargando.value = true
+  iniciar()
   try {
     citas.value =
       vista.value === 'dia'
@@ -94,7 +95,7 @@ async function cargar() {
   } catch {
     ui.error('No se pudo cargar la agenda.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -163,7 +164,11 @@ async function marcar(cita: CitaResuelta, estado: EstadoCita) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5">
+  <div
+    class="flex flex-col gap-5"
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
+  >
     <div class="flex flex-wrap items-end justify-between gap-4">
       <KmTabs v-model="vista" :pestanas="pestanas" />
       <div class="flex items-end gap-3">

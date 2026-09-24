@@ -5,6 +5,7 @@ import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
 import KmCard from '@/components/ui/KmCard.vue'
 import MarcaTorque from '@/components/marca/MarcaTorque.vue'
+import { useCarga } from '@/composables/useCarga'
 import { almacenService } from '@/services/almacen.service'
 import { citasService } from '@/services/citas.service'
 import { ordenesService } from '@/services/ordenes.service'
@@ -36,7 +37,7 @@ const detenidas = ref<OrdenResuelta[]>([])
 const enTaller = ref<OrdenResuelta[]>([])
 const citas = ref<CitaResuelta[]>([])
 const reponer = ref<Repuesto[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 
 const hoy = new Date().toISOString().slice(0, 10)
 
@@ -63,7 +64,7 @@ const porLlegar = computed(() =>
 async function cargar() {
   const localId = localStore.localId
   if (!localId) return
-  cargando.value = true
+  iniciar()
   try {
     ;[resumen.value, detenidas.value, enTaller.value, citas.value, reponer.value] =
       await Promise.all([
@@ -76,7 +77,7 @@ async function cargar() {
   } catch {
     ui.error('No se pudo cargar el parte del taller.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -85,7 +86,11 @@ watch(() => localStore.localId, cargar)
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div
+    class="flex flex-col gap-6"
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
+  >
     <!--
       Franja de jornada: el único bloque de color pleno del sistema. Lo que
       dice es siempre lo mismo —cuánto hay dentro y cuánto no avanza— porque
