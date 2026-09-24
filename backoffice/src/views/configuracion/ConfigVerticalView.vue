@@ -4,6 +4,7 @@ import FilaParametro from '@/components/configuracion/FilaParametro.vue'
 import KmAyuda from '@/components/ui/KmAyuda.vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
+import { useCarga } from '@/composables/useCarga'
 import { gruposParametros, parametrosService } from '@/services/parametros.service'
 import { useUiStore } from '@/stores/ui.store'
 import type { ApiError, ParametroResuelto, ValorParametro } from '@/types'
@@ -36,7 +37,7 @@ import { etiquetaFase } from '@/utils/ordenes'
 const ui = useUiStore()
 
 const parametros = ref<ParametroResuelto[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 const guardando = ref(false)
 const grupoActivo = ref(gruposParametros[0]!)
 
@@ -103,13 +104,13 @@ const personalizadosPorGrupo = computed(() => {
 const conErp = computed(() => parametros.value.filter((p) => p.definicion.erp).length)
 
 async function cargar() {
-  cargando.value = true
+  iniciar()
   try {
     parametros.value = await parametrosService.listar()
   } catch {
     ui.error('No se pudo cargar la configuración.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -165,7 +166,11 @@ async function restablecer(clave: string) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5 pb-24">
+  <div
+    class="flex flex-col gap-5 pb-24"
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
+  >
     <!--
       La explicación de cómo funciona la pantalla hace falta la primera vez y
       estorba las cien siguientes, así que vive en la ayuda del título en vez

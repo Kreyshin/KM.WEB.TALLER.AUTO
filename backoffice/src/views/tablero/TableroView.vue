@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useCarga } from '@/composables/useCarga'
 import PanelOrden from '@/components/ordenes/PanelOrden.vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
@@ -37,7 +38,7 @@ const ui = useUiStore()
 
 const bahias = ref<BahiaResuelta[]>([])
 const enTaller = ref<OrdenResuelta[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 const ahora = ref(Date.now())
 const seleccionada = ref<string | null>(null)
 const panelAbierto = ref(false)
@@ -60,7 +61,7 @@ const resumen = computed(() => {
 async function cargar(silencioso = false) {
   const localId = localStore.localId
   if (!localId) return
-  if (!silencioso) cargando.value = true
+  if (!silencioso) iniciar()
   try {
     ;[bahias.value, enTaller.value] = await Promise.all([
       ordenesService.tablero(localId),
@@ -70,7 +71,7 @@ async function cargar(silencioso = false) {
   } catch {
     if (!silencioso) ui.error('No se pudo cargar el tablero.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -122,7 +123,12 @@ async function avanzar(orden: OrdenResuelta) {
     <p v-if="cargando" class="py-16 text-center text-sm text-tenue">Cargando el taller…</p>
 
     <!-- Una celda por bahía, en el orden del plano. -->
-    <ul v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <ul
+      v-else
+      class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      :class="{ 'ts-refrescando': refrescando }"
+      :aria-busy="refrescando"
+    >
       <li
         v-for="b in bahias"
         :key="b.id"

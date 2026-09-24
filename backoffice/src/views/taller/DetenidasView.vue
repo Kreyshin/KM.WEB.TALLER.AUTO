@@ -4,6 +4,7 @@ import PanelOrden from '@/components/ordenes/PanelOrden.vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
 import KmCard from '@/components/ui/KmCard.vue'
+import { useCarga } from '@/composables/useCarga'
 import { ordenesService } from '@/services/ordenes.service'
 import { useLocalStore } from '@/stores/local.store'
 import { useUiStore } from '@/stores/ui.store'
@@ -30,7 +31,7 @@ const localStore = useLocalStore()
 const ui = useUiStore()
 
 const ordenes = ref<OrdenResuelta[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 const seleccionada = ref<string | null>(null)
 const panelAbierto = ref(false)
 
@@ -52,13 +53,13 @@ const inmovilizado = computed(() => ordenes.value.reduce((s, o) => s + o.total, 
 async function cargar() {
   const localId = localStore.localId
   if (!localId) return
-  cargando.value = true
+  iniciar()
   try {
     ordenes.value = await ordenesService.detenidas(localId)
   } catch {
     ui.error('No se pudieron cargar las órdenes detenidas.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -82,7 +83,11 @@ async function reanudar(orden: OrdenResuelta) {
 </script>
 
 <template>
-  <div class="ts-operacion flex flex-col gap-5">
+  <div
+    class="ts-operacion flex flex-col gap-5"
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
+  >
     <KmCard
       titulo="Órdenes detenidas"
       :subtitulo="`${ordenes.length} órdenes ocupan sitio sin avanzar · ${formatearSoles(inmovilizado)} inmovilizados`"

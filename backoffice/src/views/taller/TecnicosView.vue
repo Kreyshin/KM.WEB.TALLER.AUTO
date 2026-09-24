@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmCard from '@/components/ui/KmCard.vue'
+import { useCarga } from '@/composables/useCarga'
 import { ordenesService } from '@/services/ordenes.service'
 import { parametrosService } from '@/services/parametros.service'
 import { useLocalStore } from '@/stores/local.store'
@@ -28,7 +29,7 @@ const localStore = useLocalStore()
 const ui = useUiStore()
 
 const cargas = ref<Carga[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 
 /**
  * Jornada de referencia. Sale de la configuración de la vertical: un taller de
@@ -51,13 +52,13 @@ function estado(horas: number) {
 async function cargar() {
   const localId = localStore.localId
   if (!localId) return
-  cargando.value = true
+  iniciar()
   try {
     cargas.value = await ordenesService.cargaPorTecnico(localId)
   } catch {
     ui.error('No se pudo calcular la carga de los técnicos.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -67,6 +68,8 @@ watch(() => localStore.localId, cargar)
 
 <template>
   <KmCard
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
     titulo="Carga de técnicos"
     :subtitulo="`${formatearHoras(totalHoras)} de baremo comprometidas · jornada de referencia: ${JORNADA} h por persona`"
   >

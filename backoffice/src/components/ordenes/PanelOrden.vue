@@ -11,6 +11,7 @@ import KmSelect from '@/components/ui/KmSelect.vue'
 import { almacenService } from '@/services/almacen.service'
 import { bahiasService } from '@/services/bahias.service'
 import { catalogoService } from '@/services/catalogo.service'
+import { useCarga } from '@/composables/useCarga'
 import { ordenesService } from '@/services/ordenes.service'
 import { parametrosService } from '@/services/parametros.service'
 import { usuariosService } from '@/services/usuarios.service'
@@ -46,7 +47,7 @@ const abierto = defineModel<boolean>({ required: true })
 const ui = useUiStore()
 
 const orden = ref<OrdenResuelta | null>(null)
-const cargando = ref(false)
+const { cargando, refrescando, con } = useCarga()
 const trabajando = ref(false)
 
 const bahias = ref<OpcionSelect[]>([])
@@ -98,14 +99,13 @@ const promesa = computed(() => (orden.value?.promesa ? faltanPara(orden.value.pr
 
 async function cargar() {
   if (!props.ordenId) return
-  cargando.value = true
-  try {
-    orden.value = await ordenesService.obtenerResuelta(props.ordenId)
-  } catch {
-    ui.error('No se pudo cargar la orden.')
-  } finally {
-    cargando.value = false
-  }
+  await con(async () => {
+    try {
+      orden.value = await ordenesService.obtenerResuelta(props.ordenId!)
+    } catch {
+      ui.error('No se pudo cargar la orden.')
+    }
+  })
 }
 
 watch(
@@ -232,7 +232,17 @@ const quitar = (itemId: string) =>
   <KmDrawer v-model="abierto" ancho="xl" :titulo="orden?.codigo ?? 'Orden de trabajo'">
     <p v-if="cargando || !orden" class="py-12 text-center text-sm text-tenue">Cargando orden…</p>
 
-    <div v-else class="flex flex-col gap-6">
+    <!--
+      Al recargar tras una acción, el panel NO se desmonta: se atenúa. Vaciarlo
+      perdería el scroll y se sentiría como recargar la página por aprobar una
+      línea de S/ 38.
+    -->
+    <div
+      v-else
+      class="flex flex-col gap-6"
+      :class="{ 'ts-refrescando': refrescando }"
+      :aria-busy="refrescando"
+    >
       <!-- Cabecera: las dos dimensiones, separadas y visibles a la vez. -->
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -373,7 +383,7 @@ const quitar = (itemId: string) =>
               placeholder="Elige del catálogo"
             />
           </KmField>
-          <KmField v-slot="{ id }" label="Cant." class="w-24">
+          <KmField v-slot="{ id }" label="Cant." class="w-36">
             <KmNumero :id="id" v-model="nuevaLinea.cantidad" :min="1" />
           </KmField>
           <KmButton

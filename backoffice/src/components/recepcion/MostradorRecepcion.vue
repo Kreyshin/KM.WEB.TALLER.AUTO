@@ -7,6 +7,7 @@ import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
+import { useCarga } from '@/composables/useCarga'
 import { normalizarPlaca, recepcionService } from '@/services/recepcion.service'
 import { useUiStore } from '@/stores/ui.store'
 import type {
@@ -35,7 +36,7 @@ const ui = useUiStore()
 
 const esperadas = ref<CitaResuelta[]>([])
 const enPiso = ref<OrdenResuelta[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 
 // ── Llega un vehículo ────────────────────────────────────────────────────────
 const placa = ref('')
@@ -57,7 +58,7 @@ const esDesconocido = computed(() => buscada.value === placa.value && !conocido.
 
 async function cargar() {
   if (!props.localId) return
-  cargando.value = true
+  iniciar()
   try {
     const mostrador = await recepcionService.mostrador(props.localId)
     esperadas.value = mostrador.esperadas
@@ -65,7 +66,7 @@ async function cargar() {
   } catch {
     ui.error('No se pudo cargar el mostrador.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -147,7 +148,11 @@ function retraso(hora: string): number {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5">
+  <div
+    class="flex flex-col gap-5"
+    :class="{ 'ts-refrescando': refrescando }"
+    :aria-busy="refrescando"
+  >
     <!-- Llega un vehículo: el caso que ninguna agenda recoge. -->
     <KmCard
       titulo="Entra un vehículo"

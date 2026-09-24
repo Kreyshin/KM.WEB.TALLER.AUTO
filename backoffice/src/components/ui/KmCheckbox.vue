@@ -31,6 +31,14 @@ const marcado = defineModel<boolean>({ default: false })
 </template>
 
 <style scoped>
+/*
+ * La marca se dibuja, no aparece.
+ *
+ * Un check que pasa de transparente a blanco cambia de estado sin que el ojo
+ * vea el gesto: parece que la pantalla se repintó. Trazando la línea —y
+ * dejando que la caja dé un pellizco al marcarse— el control contesta al dedo
+ * y se entiende qué acaba de pasar.
+ */
 .ts-check-caja {
   display: grid;
   flex-shrink: 0;
@@ -39,25 +47,58 @@ const marcado = defineModel<boolean>({ default: false })
   border: 1.5px solid var(--color-linea);
   border-radius: 5px;
   background: var(--color-panel);
-  color: transparent;
+  color: #fff;
   transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+    background-color var(--km-mov-rapido) var(--km-curva),
+    border-color var(--km-mov-rapido) var(--km-curva),
+    transform var(--km-mov-rapido) var(--km-curva);
 }
+
 .ts-check:hover .ts-check-caja {
   border-color: var(--color-accion);
 }
+
+/* Se hunde bajo el dedo: la respuesta llega antes que el estado. */
+.ts-check:active .ts-check-caja {
+  transform: scale(0.9);
+}
+
 .ts-check-caja svg {
   width: 80%;
   height: 80%;
+  /* La longitud del trazo; se recorta entera hasta que se marca. */
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+  transition: stroke-dashoffset var(--km-mov-normal) var(--km-curva);
 }
+
 input:checked + .ts-check-caja {
   background: var(--color-accion);
   border-color: var(--color-accion);
-  color: #fff;
+  transform: scale(1);
+  animation: ts-check-pellizco var(--km-mov-normal) var(--km-rebote);
 }
+
+input:checked + .ts-check-caja svg {
+  stroke-dashoffset: 0;
+}
+
 input:focus-visible + .ts-check-caja {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accion) 30%, transparent);
+}
+
+@keyframes ts-check-pellizco {
+  0% {
+    transform: scale(0.86);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input:checked + .ts-check-caja {
+    animation: none;
+  }
 }
 </style>

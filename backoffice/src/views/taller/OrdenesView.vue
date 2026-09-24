@@ -13,6 +13,7 @@ import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
 import KmTable from '@/components/ui/KmTable.vue'
+import { useCarga } from '@/composables/useCarga'
 import { ordenesService } from '@/services/ordenes.service'
 import { parametrosService } from '@/services/parametros.service'
 import { vehiculosService } from '@/services/vehiculos.service'
@@ -60,7 +61,7 @@ const ui = useUiStore()
 
 const ordenes = ref<OrdenResuelta[]>([])
 const vehiculos = ref<VehiculoResuelto[]>([])
-const cargando = ref(true)
+const { cargando, refrescando, iniciar, terminar } = useCarga()
 const buscar = ref(String(route.query.q ?? ''))
 const filtroFase = ref<string | number | undefined>('')
 const soloDetenidas = ref(false)
@@ -212,13 +213,13 @@ const grupos = computed<{ clave: string; titulo: string; ordenes: OrdenResuelta[
 async function cargar() {
   const localId = localStore.localId
   if (!localId) return
-  cargando.value = true
+  iniciar()
   try {
     ordenes.value = await ordenesService.enTaller(localId)
   } catch {
     ui.error('No se pudieron cargar las órdenes.')
   } finally {
-    cargando.value = false
+    terminar()
   }
 }
 
@@ -454,13 +455,25 @@ async function guardar() {
     </div>
 
     <p v-if="cargando" class="py-16 text-center text-sm text-tenue">Cargando órdenes…</p>
+
+    <!--
+      Al refrescar tras una acción rápida se atenúan LOS DATOS, no la barra:
+      quien acaba de pulsar «Detener» sigue pudiendo escribir en el buscador
+      mientras llega la respuesta, y nada cambia de sitio.
+    -->
     <KmCard v-else-if="!filtradas.length" titulo="Órdenes en el taller">
       <p class="py-10 text-center text-sm text-tenue">No hay órdenes que coincidan.</p>
     </KmCard>
 
     <!-- Tarjetas, agrupadas por lo que esta sede quiera contestar primero. -->
     <template v-else-if="vista === 'tarjetas'">
-      <section v-for="g in grupos" :key="g.clave" class="flex flex-col gap-3">
+      <section
+        v-for="g in grupos"
+        :key="g.clave"
+        class="flex flex-col gap-3"
+        :class="{ 'ts-refrescando': refrescando }"
+        :aria-busy="refrescando"
+      >
         <h2 v-if="agrupar !== 'ninguno'" class="flex items-baseline gap-2">
           <span class="ts-display text-base font-semibold text-tinta">{{ g.titulo }}</span>
           <span class="text-xs text-tenue">{{ g.ordenes.length }}</span>
@@ -490,6 +503,8 @@ async function guardar() {
       titulo="Órdenes en el taller"
       :subtitulo="`${filtradas.length} de ${ordenes.length} órdenes vivas en esta sede.`"
       sin-padding
+      :class="{ 'ts-refrescando': refrescando }"
+      :aria-busy="refrescando"
     >
       <KmTable
         :columnas="columnas"
