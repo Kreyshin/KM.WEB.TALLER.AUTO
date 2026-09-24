@@ -100,7 +100,17 @@ describe('hoja de ingreso', () => {
     usuarioId: 'u2',
     kilometraje: 0,
     combustible: 4,
-    marcas: [{ id: 'm1', x: 30, y: 25, tipo: 'rayon' as const, nota: 'Puerta delantera' }],
+    marcas: [
+      {
+        id: 'm1',
+        vista: 'izquierda' as const,
+        zona: 'izquierda.puerta-delantera',
+        x: 38,
+        y: 55,
+        tipo: 'rayon' as const,
+        nota: 'Rayón de 20 cm',
+      },
+    ],
     puntos: { luces: 'conforme' as const, carroceria: 'observado' as const },
     pertenencias: ['Gata y llave de ruedas'],
     firma: 'data:image/png;base64,iVBORw0KGgo=',
