@@ -43,3 +43,26 @@ un almacén sin responsable.
 Una salida que no alcanza se rechaza con el número exacto que queda: _«Solo
 quedan 2 de Filtro de aceite.»_ El mismo control se aplica al añadir un repuesto
 al presupuesto de una orden.
+
+## Cómo se mira el almacén
+
+La pregunta con la que se entra aquí no es «busca esta pieza», es **«¿qué tengo
+que pedir?»**. Por eso la pantalla contesta antes de que nadie lea una fila:
+
+- Arriba, el parte: cuántas referencias están **sin stock**, cuántas **bajo
+  mínimo** y **cuánto cuesta** dejar el almacén en su punto de pedido.
+- Debajo, una tarjeta por repuesto con una **barra de nivel** en la que el
+  mínimo siempre cae a media barra. Así «por debajo de la mitad» significa lo
+  mismo en un filtro de 46 unidades que en un compresor del que se tiene uno.
+
+::: tip Solo se marca la excepción
+Las piezas con holgura no llevan insignia. En una rejilla de veinte, repetir
+veinte veces «con holgura» tapa justo la que hay que ver; lo normal ya lo dicen
+la cifra y la barra.
+:::
+
+El mínimo es el **punto de pedido**: estar justo en él ya cuenta como «hay que
+reponer». Esperar a bajar de ahí es llegar tarde.
+
+La tabla sigue disponible en el interruptor de la derecha, y el sistema
+recuerda la elección.
