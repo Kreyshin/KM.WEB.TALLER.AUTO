@@ -70,6 +70,7 @@ export default defineConfig({
             { text: 'Citas', link: '/modulos/citas' },
             { text: 'Catálogo y baremos', link: '/modulos/catalogo' },
             { text: 'Almacén', link: '/modulos/almacen' },
+            { text: 'Configuración del taller', link: '/modulos/configuracion-taller' },
             { text: 'Configuración', link: '/modulos/configuracion' },
           ],
         },

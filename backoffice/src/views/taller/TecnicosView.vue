@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmCard from '@/components/ui/KmCard.vue'
 import { ordenesService } from '@/services/ordenes.service'
+import { parametrosService } from '@/services/parametros.service'
 import { useLocalStore } from '@/stores/local.store'
 import { useUiStore } from '@/stores/ui.store'
 import type { Usuario } from '@/types'
@@ -29,17 +30,20 @@ const ui = useUiStore()
 const cargas = ref<Carga[]>([])
 const cargando = ref(true)
 
-/** Jornada de referencia del taller: 8 horas de baremo por técnico y día. */
-const JORNADA = 8
+/**
+ * Jornada de referencia. Sale de la configuración de la vertical: un taller de
+ * mecánica rápida y uno de flota no miden la carga con la misma vara.
+ */
+const JORNADA = computed(() => parametrosService.valor<number>('taller.jornadaHoras'))
 
-const maximo = computed(() => Math.max(JORNADA, ...cargas.value.map((c) => c.horas)))
+const maximo = computed(() => Math.max(JORNADA.value, ...cargas.value.map((c) => c.horas)))
 
 const totalHoras = computed(() => cargas.value.reduce((s, c) => s + c.horas, 0))
 
 /** Sobre la jornada, el reparto está desequilibrado; no es un error, es un aviso. */
 function estado(horas: number) {
-  if (horas > JORNADA) return { tono: 'rojo' as const, texto: '⚠ Sobrecargado' }
-  if (horas >= JORNADA * 0.75) return { tono: 'ambar' as const, texto: '◑ Jornada llena' }
+  if (horas > JORNADA.value) return { tono: 'rojo' as const, texto: '⚠ Sobrecargado' }
+  if (horas >= JORNADA.value * 0.75) return { tono: 'ambar' as const, texto: '◑ Jornada llena' }
   if (horas === 0) return { tono: 'neutro' as const, texto: '○ Libre' }
   return { tono: 'verde' as const, texto: '✓ Con margen' }
 }

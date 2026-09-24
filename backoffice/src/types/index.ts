@@ -465,22 +465,79 @@ export interface Motivo {
 
 export type AlcanceParametro = 'vertical' | 'local'
 
+/**
+ * Qué clase de control pide un parámetro.
+ *
+ * `multiple` y `orden` existen porque hay decisiones de taller que no son un
+ * sí/no ni una opción entre varias: qué se exige al recibir un vehículo son
+ * varias cosas a la vez, y por qué fases pasa el trabajo es una **secuencia**
+ * que cada taller ordena a su manera.
+ */
+export type TipoParametro = 'booleano' | 'numero' | 'texto' | 'opcion' | 'multiple' | 'orden'
+
+export interface OpcionParametro {
+  valor: string
+  etiqueta: string
+  /** Qué implica elegirla, en una línea. */
+  descripcion?: string
+  /** En una lista ordenable: no se puede desactivar. Recibir y entregar siempre pasan. */
+  fijo?: boolean
+}
+
+/**
+ * Lo que el ERP añade a un parámetro cuando se contrata su módulo.
+ *
+ * La vertical resuelve lo **básico y transversal** de cada cosa; el mismo
+ * concepto, llevado a su versión avanzada, vive en un módulo del ERP. Decirlo
+ * aquí —en el sitio donde el usuario está tomando la decisión— es más honesto
+ * y más útil que esconderlo: se ve qué se puede hacer hoy y qué haría falta
+ * para ir más lejos.
+ */
+export interface AmpliacionErp {
+  /** Módulo que lo desbloquea: `Documentos`, `CRM`, `Facturación`… */
+  modulo: string
+  /** Qué añade, en la voz del oficio. */
+  que: string
+}
+
 export interface DefinicionParametro {
   clave: string
   etiqueta: string
   descripcion?: string
+  /**
+   * La consecuencia real, contada como pasa en el taller. Es lo que convierte
+   * una casilla en una decisión: sin esta línea nadie sabe qué está activando.
+   */
+  escenario?: string
   alcance: AlcanceParametro
   grupo: string
-  tipo: 'booleano' | 'numero' | 'texto' | 'opcion'
-  opciones?: { valor: string; etiqueta: string }[]
-  porDefecto: string | number | boolean
+  tipo: TipoParametro
+  opciones?: OpcionParametro[]
+  /** Sufijo de los números: `días`, `%`, `min`. */
+  unidad?: string
+  minimo?: number
+  maximo?: number
+  /** Solo se muestra cuando otro parámetro tiene cierto valor. */
+  depende?: { clave: string; distintoDe?: ValorParametro; igualA?: ValorParametro }
+  /** Lo avanzado de este mismo concepto, si vive en el ERP. */
+  erp?: AmpliacionErp
+  porDefecto: ValorParametro
 }
 
-export type ValorParametro = string | number | boolean
+/** Una lista ordenada (`orden`, `multiple`) también es un valor de configuración. */
+export type ValorParametro = string | number | boolean | string[]
 
 export interface ValoresConfiguracion {
   vertical: Record<string, ValorParametro>
   locales: Record<string, Record<string, ValorParametro>>
+}
+
+/** Un parámetro con su valor ya resuelto y de dónde sale. */
+export interface ParametroResuelto {
+  definicion: DefinicionParametro
+  valor: ValorParametro
+  /** `propio`: fijado aquí. `defecto`: el que trae la vertical de fábrica. */
+  origen: 'propio' | 'defecto'
 }
 
 // ── Consulta y transporte ────────────────────────────────────────────────────

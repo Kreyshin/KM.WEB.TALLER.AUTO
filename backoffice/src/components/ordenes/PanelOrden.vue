@@ -12,6 +12,7 @@ import { almacenService } from '@/services/almacen.service'
 import { bahiasService } from '@/services/bahias.service'
 import { catalogoService } from '@/services/catalogo.service'
 import { ordenesService } from '@/services/ordenes.service'
+import { parametrosService } from '@/services/parametros.service'
 import { usuariosService } from '@/services/usuarios.service'
 import { useUiStore } from '@/stores/ui.store'
 import type { ApiError, MotivoDetencion, OrdenResuelta } from '@/types'
@@ -64,10 +65,21 @@ const nuevaLinea = ref({
 const modalDetener = ref(false)
 const detencion = ref({ motivo: 'esperaRepuesto' as MotivoDetencion, nota: '' })
 
-const opcionesMotivo: OpcionSelect[] = motivosDetencion.map((m) => ({
-  valor: m,
-  etiqueta: etiquetaDetencion[m],
-}))
+/**
+ * Los motivos y su orden salen de la configuración: el primero de la lista es
+ * el que más se usa en este taller, y los que no se ofrecen no aparecen.
+ */
+const opcionesMotivo = computed<OpcionSelect[]>(() => {
+  const configurados = parametrosService.valor<string[]>('taller.motivosDetencion')
+  return configurados
+    .filter((m): m is MotivoDetencion => motivosDetencion.includes(m as MotivoDetencion))
+    .map((m) => ({ valor: m, etiqueta: etiquetaDetencion[m] }))
+})
+
+/** Aprobar línea a línea puede estar desactivado: entonces se aprueba entero. */
+const aprobacionParcial = computed(() =>
+  parametrosService.valor<boolean>('presupuesto.aprobacionParcial'),
+)
 
 const tiposLinea: OpcionSelect[] = [
   { valor: 'servicio', etiqueta: 'Mano de obra' },
@@ -152,7 +164,8 @@ const aprobar = () =>
 const reanudar = () => ejecutar(() => ordenesService.reanudar(orden.value!.id), 'Orden reanudada.')
 
 function detener() {
-  detencion.value = { motivo: 'esperaRepuesto', nota: '' }
+  const primero = opcionesMotivo.value[0]?.valor as MotivoDetencion | undefined
+  detencion.value = { motivo: primero ?? 'esperaRepuesto', nota: '' }
   modalDetener.value = true
 }
 
@@ -334,6 +347,7 @@ const quitar = (itemId: string) =>
             </span>
             <!-- Una línea se rechaza sin tumbar el resto del presupuesto. -->
             <KmButton
+              v-if="aprobacionParcial"
               :variante="item.aprobado ? 'secundario' : 'fantasma'"
               tamano="sm"
               @click="alternar(item.id)"

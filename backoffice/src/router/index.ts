@@ -151,7 +151,7 @@ const rutas: RouteRecordRaw[] = [
       {
         path: 'configuracion/taller',
         name: 'config-vertical',
-        component: () => import('@/views/EnConstruccionView.vue'),
+        component: () => import('@/views/configuracion/ConfigVerticalView.vue'),
         meta: { titulo: 'Configuración del taller', roles: ['admin'] },
       },
       {
