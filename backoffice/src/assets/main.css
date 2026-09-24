@@ -539,3 +539,23 @@ body {
 .dp--input:focus {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ts-primary) 22%, transparent);
 }
+
+/* ── Postura ─────────────────────────────────────────────────────────────────
+ *
+ * Quién usa esto y desde dónde. En Taller el cuerpo es el de **alguien de pie
+ * en la bahía, con guantes y con la nave a media luz o a pleno sol**. El dedo
+ * es grueso y la pantalla está sucia.
+ *
+ * El modo operación sube el objetivo táctil a 48 px y el texto a 15 px. No es
+ * accesibilidad de trámite: es que una hoja de ingreso rellenada con guantes
+ * sobre una tablet no se rellena con controles de escritorio.
+ *
+ * Fuera de este modo no cambia nada: el administrador que configura bahías o
+ * baremos está sentado en la oficina.
+ */
+.ts-operacion {
+  --km-toque: 3rem;
+  --km-texto: 0.9375rem;
+  --km-fila: 1.125rem;
+  --km-celda: 3rem;
+}

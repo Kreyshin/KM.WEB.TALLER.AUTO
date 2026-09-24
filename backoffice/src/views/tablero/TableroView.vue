@@ -104,7 +104,7 @@ async function avanzar(orden: OrdenResuelta) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5">
+  <div class="ts-operacion flex flex-col gap-5">
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h2 class="ts-titulo-pagina text-tinta">Tablero de bahías</h2>
@@ -201,14 +201,11 @@ async function avanzar(orden: OrdenResuelta) {
           <div class="mt-auto flex flex-wrap gap-2 pt-4">
             <KmButton
               v-if="accionSiguienteFase[b.ordenTrabajo.fase] && !b.ordenTrabajo.detencion"
-              tamano="sm"
               @click="avanzar(b.ordenTrabajo)"
             >
               {{ accionSiguienteFase[b.ordenTrabajo.fase] }}
             </KmButton>
-            <KmButton variante="fantasma" tamano="sm" @click="abrir(b.ordenTrabajo)">
-              Ficha
-            </KmButton>
+            <KmButton variante="fantasma" @click="abrir(b.ordenTrabajo)">Ficha</KmButton>
           </div>
         </template>
       </li>
