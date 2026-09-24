@@ -112,7 +112,7 @@ function alTocar(evento: MouseEvent) {
         v-for="z in zonas"
         :key="z.etiqueta"
         type="button"
-        class="rounded-control border border-linea px-2 py-1 text-[11px] font-semibold text-tenue transition-colors hover:border-acero hover:text-acero"
+        class="min-h-[var(--km-toque,2.5rem)] rounded-control border border-linea px-3 text-[11px] font-semibold text-tenue transition-colors hover:border-acero hover:text-acero"
         @click="emit('marcar', z.x, z.y)"
       >
         + {{ z.etiqueta }}

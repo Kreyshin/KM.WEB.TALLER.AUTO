@@ -82,7 +82,7 @@ async function reanudar(orden: OrdenResuelta) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5">
+  <div class="ts-operacion flex flex-col gap-5">
     <KmCard
       titulo="Órdenes detenidas"
       :subtitulo="`${ordenes.length} órdenes ocupan sitio sin avanzar · ${formatearSoles(inmovilizado)} inmovilizados`"
@@ -139,8 +139,8 @@ async function reanudar(orden: OrdenResuelta) {
           </div>
 
           <div class="mt-4 flex gap-2 pt-1">
-            <KmButton tamano="sm" @click="reanudar(o)">Ya se resolvió</KmButton>
-            <KmButton variante="fantasma" tamano="sm" @click="abrir(o)">Ver ficha</KmButton>
+            <KmButton @click="reanudar(o)">Ya se resolvió</KmButton>
+            <KmButton variante="fantasma" @click="abrir(o)">Ver ficha</KmButton>
           </div>
         </li>
       </ul>

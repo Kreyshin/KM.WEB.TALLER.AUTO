@@ -222,7 +222,7 @@ async function guardar() {
   </KmCard>
 
   <!-- La hoja -->
-  <div v-else-if="orden" class="flex flex-col gap-5">
+  <div v-else-if="orden" class="ts-operacion flex flex-col gap-5">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="ts-etiqueta text-tenue">Hoja de ingreso · {{ orden.codigo }}</p>
@@ -255,7 +255,7 @@ async function guardar() {
             v-for="t in ['rayon', 'abolladura', 'rotura', 'oxido', 'faltante'] as TipoDanio[]"
             :key="t"
             type="button"
-            class="rounded-control border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+            class="min-h-[var(--km-toque,2.5rem)] rounded-control border px-3 text-xs font-semibold transition-colors"
             :class="
               herramienta === t
                 ? 'border-transparent bg-accion text-white'
@@ -375,7 +375,7 @@ async function guardar() {
                       v-for="e in ['conforme', 'observado', 'noAplica'] as EstadoPunto[]"
                       :key="e"
                       type="button"
-                      class="rounded-control border px-2 py-1 text-[11px] font-semibold transition-colors"
+                      class="min-h-[var(--km-toque,2.5rem)] rounded-control border px-2.5 text-[11px] font-semibold transition-colors"
                       :class="
                         hoja.puntos[p.clave] === e
                           ? 'border-transparent bg-accion text-white'
