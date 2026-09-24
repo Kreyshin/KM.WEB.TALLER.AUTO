@@ -2,6 +2,7 @@ import type {
   BahiaResuelta,
   Consulta,
   FaseOrden,
+  Inspeccion,
   ItemOrden,
   MotivoDetencion,
   NuevaOrden,
@@ -240,6 +241,44 @@ export const ordenesService = {
     item.aprobado = !item.aprobado
     persistir()
     return latencia(orden)
+  },
+
+  /**
+   * Guarda la hoja de ingreso.
+   *
+   * Es el documento que separa «se lo rayaron aquí» de «entró así», y por eso
+   * solo vale con dos cosas: el kilometraje real de entrada y la firma del
+   * cliente. Una hoja sin firmar no protege a nadie, así que el sistema la
+   * guarda pero no deja avanzar la orden con ella a medias.
+   *
+   * Al guardarla se actualiza también el odómetro del vehículo: la vuelta al
+   * coche es el único momento en que alguien lo mira de verdad.
+   */
+  async guardarInspeccion(id: string, inspeccion: Inspeccion): Promise<OrdenTrabajo> {
+    const orden = db.ordenes.find((o) => o.id === id)
+    if (!orden) throw { mensaje: 'Orden no encontrada.' }
+
+    if (inspeccion.kilometraje < 0) {
+      throw errorCampo('kilometraje', 'El kilometraje no puede ser negativo.')
+    }
+    if (inspeccion.combustible < 0 || inspeccion.combustible > 8) {
+      throw errorCampo('combustible', 'El nivel va de 0 a 8 octavos.')
+    }
+
+    const vehiculo = db.vehiculos.find((v) => v.id === orden.vehiculoId)
+    if (vehiculo && inspeccion.kilometraje > vehiculo.kilometraje) {
+      vehiculo.kilometraje = inspeccion.kilometraje
+      vehiculo.kilometrajeAl = new Date().toISOString()
+    }
+
+    persistir()
+    return repo.actualizar(id, { inspeccion, kilometraje: inspeccion.kilometraje })
+  },
+
+  /** Las órdenes que todavía no tienen hecha la vuelta al vehículo. */
+  async sinInspeccion(localId: string): Promise<OrdenResuelta[]> {
+    const items = await this.enTaller(localId)
+    return items.filter((o) => !o.inspeccion?.firma)
   },
 
   /** Resumen del día: lo que gobierna la jornada del taller. */

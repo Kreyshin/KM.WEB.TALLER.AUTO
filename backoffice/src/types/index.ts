@@ -229,6 +229,8 @@ export interface OrdenTrabajo {
   aprobada?: boolean
   /** ISO. */
   aprobadaEl?: string
+  /** Hoja de ingreso: la vuelta al vehículo, firmada por el cliente. */
+  inspeccion?: Inspeccion
   items: ItemOrden[]
 }
 
@@ -265,6 +267,48 @@ export interface OrdenResuelta extends OrdenTrabajo {
 /** Bahía con la orden que tiene dentro, para el tablero del taller. */
 export interface BahiaResuelta extends Bahia {
   ordenTrabajo?: OrdenResuelta
+}
+
+// ── La hoja de ingreso ───────────────────────────────────────────────────────
+
+/**
+ * La recepción de un vehículo se hace dando una vuelta alrededor de él y
+ * anotando lo que ya venía roto. Ese papel —la hoja de ingreso— es lo que
+ * separa «se lo rayaron en el taller» de «entró así», y es el documento que
+ * todo taller hace a mano y nadie digitaliza.
+ */
+export type TipoDanio = 'rayon' | 'abolladura' | 'rotura' | 'oxido' | 'faltante'
+
+export interface MarcaInspeccion {
+  id: string
+  /** Posición sobre el dibujo del vehículo, en % del contenedor (0–100). */
+  x: number
+  y: number
+  tipo: TipoDanio
+  nota?: string
+}
+
+/** Cada punto de la revisión: o está conforme, o hay algo que decir. */
+export type EstadoPunto = 'conforme' | 'observado' | 'noAplica'
+
+export interface Inspeccion {
+  /** ISO. Cuándo se hizo la vuelta al vehículo. */
+  fecha: string
+  usuarioId: string
+  kilometraje: number
+  /**
+   * Nivel de combustible en octavos (0–8). Se anota en octavos y no en
+   * porcentaje porque así lo marca la aguja, y porque es lo que el cliente
+   * puede comprobar al volver.
+   */
+  combustible: number
+  marcas: MarcaInspeccion[]
+  puntos: Record<string, EstadoPunto>
+  /** Lo que el cliente deja dentro: gata, llanta de repuesto, herramientas. */
+  pertenencias: string[]
+  observaciones?: string
+  /** Trazo de la firma del cliente. Sin firma, la hoja no protege a nadie. */
+  firma?: string
 }
 
 // ── Catálogo de trabajo ──────────────────────────────────────────────────────

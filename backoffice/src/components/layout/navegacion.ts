@@ -48,6 +48,11 @@ export const modulos: ModuloNav[] = [
       'M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.8 2.8 2.1 2.1 2.8-2.8a4 4 0 0 1-5.1-5.1z',
     secciones: [
       {
+        nombreRuta: 'recepcion',
+        etiqueta: 'Recepción',
+        descripcion: 'La hoja de ingreso: la vuelta al vehículo',
+      },
+      {
         nombreRuta: 'ordenes',
         etiqueta: 'Órdenes de trabajo',
         descripcion: 'Todo lo que está en el taller y su avance',

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ordenesService } from './ordenes.service'
+import { vehiculosService } from './vehiculos.service'
 import { reiniciarMock } from './mock/db'
 
 /**
@@ -83,5 +84,56 @@ describe('resumen', () => {
     expect(resumen.detenidas).toBeGreaterThan(0)
     expect(resumen.detenidas).toBeLessThanOrEqual(resumen.enTaller)
     expect(resumen.ocupacion).toBeGreaterThanOrEqual(0)
+  })
+})
+
+/**
+ * La hoja de ingreso.
+ *
+ * Es el documento que separa «entró así» de «se lo rayaron aquí», así que lo
+ * que se prueba es que no se pueda guardar a medias y que el odómetro que se
+ * anota en la vuelta al vehículo sea el que quede en la ficha del coche.
+ */
+describe('hoja de ingreso', () => {
+  const hoja = {
+    fecha: new Date().toISOString(),
+    usuarioId: 'u2',
+    kilometraje: 0,
+    combustible: 4,
+    marcas: [{ id: 'm1', x: 30, y: 25, tipo: 'rayon' as const, nota: 'Puerta delantera' }],
+    puntos: { luces: 'conforme' as const, carroceria: 'observado' as const },
+    pertenencias: ['Gata y llave de ruedas'],
+    firma: 'data:image/png;base64,iVBORw0KGgo=',
+  }
+
+  it('el nivel de combustible va en octavos, de 0 a 8', async () => {
+    const [orden] = await ordenesService.enTaller(LOCAL)
+
+    await expect(
+      ordenesService.guardarInspeccion(orden!.id, { ...hoja, kilometraje: 1000, combustible: 9 }),
+    ).rejects.toMatchObject({ campos: { combustible: expect.any(String) } })
+  })
+
+  it('el odómetro anotado en la recepción pasa a la ficha del vehículo', async () => {
+    const [orden] = await ordenesService.enTaller(LOCAL)
+    const antes = (await vehiculosService.obtener(orden!.vehiculoId)).kilometraje
+
+    await ordenesService.guardarInspeccion(orden!.id, { ...hoja, kilometraje: antes + 1200 })
+
+    const despues = await vehiculosService.obtener(orden!.vehiculoId)
+    expect(despues.kilometraje).toBe(antes + 1200)
+    expect(despues.kilometrajeAl).toBeTruthy()
+  })
+
+  it('una orden con la hoja firmada deja de estar pendiente de recibir', async () => {
+    const pendientes = await ordenesService.sinInspeccion(LOCAL)
+    expect(pendientes.length).toBeGreaterThan(0)
+
+    const primera = pendientes[0]!
+    await ordenesService.guardarInspeccion(primera.id, { ...hoja, kilometraje: 90_000 })
+
+    const despues = await ordenesService.sinInspeccion(LOCAL)
+    expect(despues.some((o) => o.id === primera.id)).toBe(false)
+    expect(despues.length).toBe(pendientes.length - 1)
   })
 })
