@@ -2,6 +2,7 @@ import type { Movimiento, NuevoRepuesto, Repuesto } from '@/types'
 import { db, latencia, nuevoId, persistir } from './mock/db'
 import { errorCampo, existeOtro } from './mock/reglas'
 import { crearRepositorio } from './mock/repositorio'
+import { parametrosService } from './parametros.service'
 
 const repo = crearRepositorio('repuestos', {
   prefijo: 'r',
@@ -57,7 +58,8 @@ export const almacenService = {
     if (!repuesto) throw { mensaje: 'Repuesto no encontrado.' }
     if (datos.cantidad <= 0) throw errorCampo('cantidad', 'La cantidad debe ser mayor que cero.')
 
-    if (datos.tipo === 'salida' && repuesto.stock < datos.cantidad) {
+    const sinStockPermitido = parametrosService.valor<boolean>('almacen.permitirSinStock')
+    if (!sinStockPermitido && datos.tipo === 'salida' && repuesto.stock < datos.cantidad) {
       throw errorCampo(
         'cantidad',
         `Solo quedan ${repuesto.stock} de ${repuesto.nombre}.`,

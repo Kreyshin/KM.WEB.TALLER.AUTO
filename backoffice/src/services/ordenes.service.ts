@@ -11,6 +11,7 @@ import type {
   Paginado,
 } from '@/types'
 import { fasesActivas, siguienteFase } from '@/utils/ordenes'
+import { parametrosService } from './parametros.service'
 import { db, latencia, nuevoId, persistir } from './mock/db'
 import { errorCampo } from './mock/reglas'
 import { crearRepositorio } from './mock/repositorio'
@@ -114,6 +115,18 @@ export const ordenesService = {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
 
+    // Configuración: sin hoja de ingreso firmada no se toca el vehículo.
+    if (
+      orden.fase === 'recepcion' &&
+      parametrosService.valor<boolean>('recepcion.hojaObligatoria')
+    ) {
+      if (!orden.inspeccion?.firma) {
+        throw {
+          mensaje: 'Falta la hoja de ingreso firmada. Complétala en Recepción antes de avanzar.',
+        }
+      }
+    }
+
     const destino = siguienteFase[orden.fase]
     if (!destino) throw { mensaje: 'La orden ya está en su fase final.' }
 
@@ -193,9 +206,12 @@ export const ordenesService = {
       if (!bahia.operativa) {
         throw { mensaje: `La bahía ${bahia.codigo} está fuera de servicio.` }
       }
-      const ocupada = db.ordenes.find(
-        (o) => o.id !== id && o.bahiaId === bahiaId && fasesActivas.includes(o.fase),
-      )
+      const exclusiva = parametrosService.valor<boolean>('taller.unaOrdenPorBahia')
+      const ocupada = exclusiva
+        ? db.ordenes.find(
+            (o) => o.id !== id && o.bahiaId === bahiaId && fasesActivas.includes(o.fase),
+          )
+        : undefined
       if (ocupada) {
         throw { mensaje: `La bahía ${bahia.codigo} ya tiene la ${ocupada.codigo} dentro.` }
       }

@@ -12,6 +12,7 @@ import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
 import KmTabs from '@/components/ui/KmTabs.vue'
 import { citasService } from '@/services/citas.service'
+import { parametrosService } from '@/services/parametros.service'
 import { vehiculosService } from '@/services/vehiculos.service'
 import { useLocalStore } from '@/stores/local.store'
 import { useUiStore } from '@/stores/ui.store'
@@ -110,7 +111,8 @@ function abrir() {
     fecha: fecha.value,
     hora: '09:00',
     motivo: '',
-    duracion: 60,
+    // La duración por defecto la fija la configuración de cada taller.
+    duracion: parametrosService.valor<number>('agenda.duracionDefecto'),
     notas: '',
   }
   errores.value = {}
