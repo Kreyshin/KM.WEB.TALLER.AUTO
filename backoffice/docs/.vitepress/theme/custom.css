@@ -1,0 +1,176 @@
+/*
+ * La documentación comparte la identidad de la vertical: azul marino y acero
+ * con el rojo del isotipo como acento. El rojo se reserva —igual que en el
+ * producto— para lo que está detenido y para la marca; el azul es el color de
+ * todo lo demás.
+ */
+
+:root {
+  --vp-font-family-base: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  --vp-c-bg: #eef0f4;
+  --vp-c-bg-alt: #e3e7ee;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #f5f7fa;
+  --vp-c-text-1: #0b1421;
+  --vp-c-text-2: #56616f;
+  --vp-c-text-3: #7f8a99;
+  --vp-c-divider: #d7dce5;
+  --vp-c-gutter: #dfe3ea;
+
+  --vp-c-brand-1: #23405f;
+  --vp-c-brand-2: #18293f;
+  --vp-c-brand-3: #325b85;
+  --vp-c-brand-soft: rgb(35 64 95 / 0.12);
+
+  --vp-button-brand-bg: #18293f;
+  --vp-button-brand-hover-bg: #0d192a;
+  --vp-button-brand-active-bg: #0b1421;
+  --vp-button-brand-text: #ffffff;
+
+  --vp-code-color: #23405f;
+  --vp-code-bg: rgb(35 64 95 / 0.08);
+
+  --vp-custom-block-tip-border: #157a4d;
+  --vp-custom-block-tip-bg: rgb(21 122 77 / 0.09);
+  --vp-custom-block-danger-border: #cc1730;
+  --vp-custom-block-danger-bg: rgb(204 23 48 / 0.08);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #fd263f 4%, #23405f 52%, #0b1421 96%);
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgb(253 38 63 / 0.26),
+    transparent 68%
+  );
+  --vp-home-hero-image-filter: blur(48px);
+}
+
+.dark {
+  --vp-c-bg: #080d16;
+  --vp-c-bg-alt: #05080e;
+  --vp-c-bg-elv: #101a29;
+  --vp-c-bg-soft: #16243a;
+  --vp-c-text-1: #f2f5f9;
+  --vp-c-text-2: #9aa6b6;
+  --vp-c-text-3: #74808f;
+  --vp-c-divider: #23324a;
+  --vp-c-gutter: #1a2537;
+
+  --vp-c-brand-1: #7ba4d6;
+  --vp-c-brand-2: #5e87b8;
+  --vp-c-brand-3: #325b85;
+  --vp-c-brand-soft: rgb(94 135 184 / 0.18);
+
+  --vp-button-brand-bg: #23405f;
+  --vp-button-brand-hover-bg: #325b85;
+  --vp-button-brand-active-bg: #5e87b8;
+
+  --vp-code-color: #7ba4d6;
+  --vp-code-bg: rgb(94 135 184 / 0.12);
+
+  --vp-home-hero-name-background: linear-gradient(120deg, #ff5c70 4%, #7ba4d6 52%, #dfe6f0 96%);
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgb(253 38 63 / 0.3),
+    transparent 70%
+  );
+}
+
+/* Títulos en la serif de la vertical, igual que en el producto. */
+.VPHero .name,
+.vp-doc h1,
+.vp-doc h2 {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  letter-spacing: -0.012em;
+}
+
+/* Geometría dura, el rasgo de esta vertical frente a las hermanas. */
+.VPButton,
+.VPFeature,
+.vp-doc .custom-block,
+.VPImage {
+  border-radius: 10px;
+}
+
+.VPFeature {
+  border-radius: 14px;
+}
+
+/*
+ * Tablas: en esta documentación casi todo es una tabla de estados o de
+ * responsabilidades, así que conviene que respiren.
+ */
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+.vp-doc th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc td,
+.vp-doc th {
+  padding: 10px 14px;
+}
+
+/* La placa, en la misma tipografía que en el producto. */
+.placa {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/*
+ * Fichas de estado: el punto de color delante de un estado, para que el texto
+ * no sea lo único que lo distinga (misma regla que en el producto).
+ */
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.estado-avanza {
+  color: #157a4d;
+}
+.estado-detenida {
+  color: #cc1730;
+}
+.estado-espera {
+  color: #a86a05;
+}
+.estado-neutro {
+  color: var(--vp-c-text-2);
+}
+
+.dark .estado-avanza {
+  color: #7bd3a8;
+}
+.dark .estado-detenida {
+  color: #ff5c70;
+}
+.dark .estado-espera {
+  color: #f0c264;
+}

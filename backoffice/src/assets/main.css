@@ -1,0 +1,541 @@
+@import 'tailwindcss';
+
+/* Fuentes explícitas: la documentación (VitePress) compila desde docs/ y no vería src/. */
+@source '../';
+@source '../../docs';
+
+/* =============================================================================
+ * Taller mecánico — sistema de diseño propio
+ *
+ * Identidad tomada del isotipo de la vertical: azul marino, rojo carmín y
+ * acero. Donde Hotelería usa la calma de la habitación preparada, Taller usa
+ * la franqueza del área de servicio: superficies limpias, cromo profundo y un
+ * rojo que solo aparece cuando algo está parado.
+ *
+ * Tres rasgos separan esta vertical de sus hermanas sin romper la estructura
+ * compartida (barra de módulos + menú de secciones + área de trabajo):
+ *   1. Geometría recta: radios cortos (6/10/14 px). Un taller no es mullido.
+ *   2. El rojo NO es el color de acción. Es el acento de marca y el aviso de
+ *      vehículo detenido; gastarlo en cada botón lo haría invisible justo
+ *      donde importa. La acción va en azul marino, el cromo de la casa.
+ *   3. Paleta de tres familias, sin colores decorativos: marino, acero y rojo,
+ *      más ámbar y verde para las fases del trabajo.
+ *
+ * La identidad de plataforma Karma se conserva íntegra en
+ * `src/assets/karma/karma-identidad.css` y en `src/components/marca/KarmaLogo.vue`,
+ * que sigue apareciendo como atribución («Un sistema Karma Systems»).
+ *
+ * Escalas: 900 = más oscuro, 50 = más claro.
+ * ========================================================================== */
+
+@custom-variant dark ([data-theme='dark'] &);
+
+:root {
+  /*
+   * Acero — escala principal, del azul marino del isotipo a su reflejo claro.
+   * Sostiene acción, foco y todo lo que avanza con normalidad.
+   */
+  --ts-acero-900: #0b1421;
+  --ts-acero-800: #0d192a;
+  --ts-acero-700: #18293f;
+  --ts-acero-600: #23405f;
+  --ts-acero-500: #325b85;
+  --ts-acero-400: #5e87b8;
+  --ts-acero-200: #bfc6d1;
+  --ts-acero-50: #eef1f6;
+
+  /*
+   * Rojo — el carmín del isotipo. Acento de marca y, en la operación, lo que
+   * está detenido. No se usa para acciones corrientes.
+   */
+  --ts-rojo-700: #a3101f;
+  --ts-rojo-600: #cc1730;
+  --ts-rojo-500: #fd263f;
+  --ts-rojo-400: #ff5c70;
+  --ts-rojo-200: #ffc0c8;
+  --ts-rojo-50: #ffeced;
+
+  /* Fases del trabajo: lo que espera y lo que ya está terminado. */
+  --ts-ambar: #a86a05;
+  --ts-ambar-claro: #f0c264;
+  --ts-verde: #157a4d;
+  --ts-verde-claro: #7bd3a8;
+
+  /* Superficies — acero pulido */
+  --ts-bg: #eef0f4;
+  --ts-surface: #ffffff;
+  --ts-surface-2: #f6f8fa;
+  --ts-text: #0f1726;
+  --ts-muted: #5a6575;
+  --ts-border: #d8dde5;
+  --ts-selection: var(--ts-acero-50);
+
+  /* Roles derivados */
+  --ts-primary: var(--ts-acero-700);
+  --ts-primary-strong: var(--ts-acero-800);
+  --ts-rojo-texto: var(--ts-rojo-700);
+
+  /*
+   * Fondo de botón primario. Se separa de --ts-primary porque ese token también
+   * pinta barras y gráficos, donde puede aclararse en tema oscuro; aquí no,
+   * porque debe sostener texto blanco a 4.5:1 en ambos temas.
+   */
+  --ts-accion: var(--ts-acero-700);
+  --ts-accion-hover: var(--ts-acero-800);
+
+  /*
+   * La barra de módulos es el marino del isotipo en AMBOS temas. Es el rasgo
+   * que fija la identidad y no depende de la preferencia del usuario.
+   */
+  --ts-rail: #0d192a;
+  --ts-rail-text: #f2f5f9;
+  --ts-rail-muted: #8e9aac;
+
+  /*
+   * Geometría: radios cortos y sombras secas. El registro es de taller, no de
+   * hospitalidad: aquí las cosas encajan, no envuelven.
+   */
+  --ts-radio-control: 6px;
+  --ts-radio-card: 10px;
+  --ts-radio-overlay: 14px;
+  --ts-sombra-panel: 0 1px 2px rgb(15 23 38 / 0.06), 0 6px 18px -10px rgb(15 23 38 / 0.2);
+  --ts-sombra-flotante: 0 12px 34px -12px rgb(11 20 33 / 0.38);
+  --ts-foco: 0 0 0 3px color-mix(in srgb, var(--ts-acero-500) 38%, transparent);
+
+  /* Estructura del shell */
+  --ts-rail-ancho: 92px;
+  --ts-menu-ancho: 300px;
+}
+
+[data-theme='dark'] {
+  /* Noche de taller: el marino llevado a superficie, nunca gris neutro. */
+  --ts-bg: #080d16;
+  --ts-surface: #101927;
+  --ts-surface-2: #16202f;
+  --ts-text: #eef2f7;
+  --ts-muted: #98a3b4;
+  --ts-border: #25303f;
+  --ts-selection: #142236;
+
+  --ts-primary: var(--ts-acero-400);
+  --ts-primary-strong: #8fb0d8;
+  --ts-rojo-texto: var(--ts-rojo-400);
+
+  --ts-accion: var(--ts-acero-600);
+  --ts-accion-hover: var(--ts-acero-500);
+
+  --ts-rail: #05090f;
+  --ts-rail-text: #f2f5f9;
+  --ts-rail-muted: #8793a5;
+
+  --ts-sombra-panel: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 18px -10px rgb(0 0 0 / 0.65);
+  --ts-sombra-flotante: 0 12px 34px -12px rgb(0 0 0 / 0.8);
+}
+
+@theme inline {
+  --color-acero: var(--ts-primary);
+  --color-acero-fuerte: var(--ts-primary-strong);
+  --color-accion: var(--ts-accion);
+  --color-accion-hover: var(--ts-accion-hover);
+  --color-acero-900: var(--ts-acero-900);
+  --color-acero-800: var(--ts-acero-800);
+  --color-acero-600: var(--ts-acero-600);
+  --color-acero-400: var(--ts-acero-400);
+  --color-acero-200: var(--ts-acero-200);
+  --color-acero-50: var(--ts-acero-50);
+
+  --color-rojo: var(--ts-rojo-500);
+  --color-rojo-texto: var(--ts-rojo-texto);
+  --color-rojo-200: var(--ts-rojo-200);
+
+  --color-lienzo: var(--ts-bg);
+  --color-panel: var(--ts-surface);
+  --color-panel-2: var(--ts-surface-2);
+  --color-tinta: var(--ts-text);
+  --color-tenue: var(--ts-muted);
+  --color-linea: var(--ts-border);
+  --color-seleccion: var(--ts-selection);
+
+  --color-rail: var(--ts-rail);
+  --color-rail-tinta: var(--ts-rail-text);
+  --color-rail-tenue: var(--ts-rail-muted);
+
+  --color-ambar: var(--ts-ambar);
+  --color-verde: var(--ts-verde);
+
+  --radius-control: var(--ts-radio-control);
+  --radius-card: var(--ts-radio-card);
+  --radius-overlay: var(--ts-radio-overlay);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background-color: var(--ts-bg);
+  color: var(--ts-text);
+  font-family:
+    'Inter',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--ts-acero-400) 38%, transparent);
+  color: var(--ts-text);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ts-foco);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ts-border) transparent;
+}
+
+/* ── Tipografía ───────────────────────────────────────────────────────────── */
+
+/*
+ * La serif se reserva para títulos y cifras; formularios y tablas siguen en
+ * sans. Es la misma pareja que el resto de verticales Karma: lo que distingue
+ * a esta es el color y la geometría, no la fuente.
+ */
+.ts-display {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-optical-sizing: auto;
+  font-variation-settings:
+    'SOFT' 0,
+    'WONK' 0;
+}
+
+.ts-titulo-pagina {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+@media (max-width: 640px) {
+  .ts-titulo-pagina {
+    font-size: 23px;
+  }
+}
+
+.ts-titulo-seccion {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Cifra grande de indicador: serif, tabular, muy poco tracking. */
+.ts-cifra {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * La misma cifra en tamaño de dato, no de indicador: sirve para un importe o
+ * una hora dentro de una fila, donde 34px se comería la línea entera.
+ */
+.ts-cifra-sm {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Etiqueta de campo o columna: versalita ancha, el registro de hoja de taller. */
+.ts-etiqueta {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Placa de matrícula: el identificador que todo el taller usa para hablar. */
+.ts-placa {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Superficies ──────────────────────────────────────────────────────────── */
+
+.ts-panel {
+  background-color: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radio-card);
+  box-shadow: var(--ts-sombra-panel);
+}
+
+/*
+ * Fondo del área de trabajo: acero con un velo marino arriba y una insinuación
+ * de rojo abajo, muy contenida. El rojo nunca domina: solo recuerda que está.
+ */
+.ts-lienzo {
+  background-color: var(--ts-bg);
+  background-image:
+    radial-gradient(
+      48rem 22rem at 10% -8%,
+      color-mix(in srgb, var(--ts-acero-500) 16%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      36rem 20rem at 106% 108%,
+      color-mix(in srgb, var(--ts-rojo-500) 12%, transparent),
+      transparent 72%
+    );
+}
+
+[data-theme='dark'] .ts-lienzo {
+  background-image:
+    radial-gradient(
+      48rem 22rem at 10% -8%,
+      color-mix(in srgb, var(--ts-acero-500) 22%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      36rem 20rem at 106% 108%,
+      color-mix(in srgb, var(--ts-rojo-600) 16%, transparent),
+      transparent 72%
+    );
+}
+
+/*
+ * Filete marino-rojo: el degradado del isotipo reducido a una línea. Aparece
+ * bajo la marca, en la portada y como separador de secciones.
+ */
+.ts-filete {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--ts-acero-400) 80%, transparent) 20%,
+    color-mix(in srgb, var(--ts-rojo-500) 78%, transparent) 80%,
+    transparent
+  );
+}
+
+/* ── Tonos de estado ──────────────────────────────────────────────────────── */
+
+/*
+ * Se calculan con color-mix sobre la superficie activa, de modo que el mismo
+ * token sirve en claro y en marino sin duplicar valores.
+ */
+.ts-tono {
+  --ts-tono-color: var(--ts-muted);
+  background-color: color-mix(in srgb, var(--ts-tono-color) 13%, var(--ts-surface));
+  border-color: color-mix(in srgb, var(--ts-tono-color) 42%, var(--ts-surface));
+  color: color-mix(in srgb, var(--ts-tono-color) 82%, var(--ts-text));
+}
+
+.ts-tono-acero {
+  --ts-tono-color: var(--ts-acero-700);
+}
+
+/*
+ * El rojo del isotipo es luminoso: sobre blanco hay que bajarlo a 700 para que
+ * el texto de la insignia llegue a 4.5:1.
+ */
+.ts-tono-rojo {
+  --ts-tono-color: var(--ts-rojo-700);
+}
+
+.ts-tono-ambar {
+  --ts-tono-color: var(--ts-ambar);
+}
+
+.ts-tono-verde {
+  --ts-tono-color: var(--ts-verde);
+}
+
+.ts-tono-neutro {
+  --ts-tono-color: var(--ts-muted);
+}
+
+/* Sobre marino los tintes profundos se apagan: se suben a las variantes claras. */
+[data-theme='dark'] .ts-tono-acero {
+  --ts-tono-color: var(--ts-acero-400);
+}
+
+[data-theme='dark'] .ts-tono-rojo {
+  --ts-tono-color: var(--ts-rojo-400);
+}
+
+[data-theme='dark'] .ts-tono-ambar {
+  --ts-tono-color: var(--ts-ambar-claro);
+}
+
+[data-theme='dark'] .ts-tono-verde {
+  --ts-tono-color: var(--ts-verde-claro);
+}
+
+/* ── Movimiento ───────────────────────────────────────────────────────────── */
+
+@keyframes ts-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ts-entrada {
+  animation: ts-entrada 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Latido del tablero: marca la bahía que acaba de cambiar. */
+@keyframes ts-latido {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ts-tono-color) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+.ts-latido {
+  animation: ts-latido 1.6s ease-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-entrada,
+  .ts-latido {
+    animation: none;
+  }
+}
+
+/* ── Selector de fechas (@vuepic/vue-datepicker) ──────────────────────────── */
+
+:root {
+  --dp-font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --dp-font-size: 0.875rem;
+  --dp-preview-font-size: 0.75rem;
+  --dp-border-radius: var(--ts-radio-control);
+  --dp-cell-border-radius: 5px;
+  --dp-cell-size: 36px;
+  --dp-button-height: 34px;
+  --dp-month-year-row-height: 40px;
+  --dp-menu-min-width: 280px;
+  --dp-menu-padding: 8px 10px;
+  --dp-input-padding: 8px 32px 8px 12px;
+  --dp-input-icon-padding: 36px;
+  --dp-action-row-padding: 10px 12px;
+}
+
+.dp--theme-light,
+.dp--theme-dark {
+  --dp-background-color: var(--ts-surface);
+  --dp-text-color: var(--ts-text);
+  --dp-hover-color: var(--ts-selection);
+  --dp-hover-text-color: var(--ts-text);
+  --dp-hover-icon-color: var(--ts-text);
+  --dp-primary-color: var(--ts-accion);
+  --dp-primary-disabled-color: color-mix(in srgb, var(--ts-accion) 45%, var(--ts-surface));
+  --dp-primary-text-color: #fff;
+  --dp-secondary-color: color-mix(in srgb, var(--ts-muted) 55%, var(--ts-surface));
+  --dp-border-color: var(--ts-border);
+  --dp-menu-border-color: var(--ts-border);
+  --dp-border-color-hover: var(--ts-primary);
+  --dp-border-color-focus: var(--ts-primary);
+  --dp-disabled-color: var(--ts-surface-2);
+  --dp-disabled-color-text: var(--ts-muted);
+  --dp-icon-color: var(--ts-muted);
+  --dp-danger-color: var(--ts-rojo-600);
+  --dp-marker-color: var(--ts-rojo-500);
+  --dp-highlight-color: color-mix(in srgb, var(--ts-acero-400) 20%, transparent);
+  --dp-scroll-bar-background: transparent;
+  --dp-scroll-bar-color: var(--ts-border);
+  --dp-range-between-dates-background-color: color-mix(
+    in srgb,
+    var(--ts-primary) 14%,
+    var(--ts-surface)
+  );
+  --dp-range-between-dates-text-color: var(--ts-text);
+  --dp-range-between-border-color: transparent;
+}
+
+.dp--input {
+  min-height: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dp--input:focus-visible {
+  box-shadow: none;
+}
+
+.dp--menu {
+  border-radius: var(--ts-radio-card);
+  box-shadow: var(--ts-sombra-flotante);
+  overflow: hidden;
+}
+
+/* Hoy: anillo rojo, para no confundirlo con el día seleccionado (marino). */
+.dp--today {
+  border-color: var(--ts-rojo-500);
+}
+
+.dp--calendar-header-item {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ts-muted);
+}
+
+.dp--month-year-select {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.dp--overlay-cell {
+  text-transform: capitalize;
+}
+
+.dp--action-row {
+  border-top: 1px solid var(--ts-border);
+}
+
+.ts-sin-anillo:focus-visible {
+  box-shadow: none;
+}
+
+.ts-campo:focus-visible,
+.ts-campo:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ts-primary) 22%, transparent);
+}
+
+.ts-campo[aria-invalid='true']:focus-visible,
+.ts-campo:has([aria-invalid='true']):focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ts-rojo-500) 24%, transparent);
+}
+
+.dp--input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ts-primary) 22%, transparent);
+}
