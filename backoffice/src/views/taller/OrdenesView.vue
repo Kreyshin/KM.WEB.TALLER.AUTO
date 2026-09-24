@@ -266,6 +266,20 @@ watch(
 
 // ── Acciones rápidas ─────────────────────────────────────────────────────────
 
+/**
+ * Qué orden está esperando respuesta. Solo su tarjeta se marca.
+ *
+ * Antes cada acción rápida recargaba las siete órdenes y atenuaba la rejilla
+ * entera. Ahora el servicio devuelve la orden ya resuelta, así que se
+ * sustituye esa —y solo esa— dentro del array: Vue repinta una tarjeta.
+ */
+const ordenOcupada = ref<string | null>(null)
+
+function sustituir(actualizada: OrdenResuelta) {
+  const i = ordenes.value.findIndex((o) => o.id === actualizada.id)
+  if (i >= 0) ordenes.value[i] = actualizada
+}
+
 const detencionAbierta = ref<OrdenResuelta | null>(null)
 const motivoDetencion = ref<MotivoDetencion>('esperaRepuesto')
 const notaDetencion = ref('')
@@ -287,22 +301,26 @@ const opcionesMotivo: OpcionSelect[] = motivosDetencion.map((m) => ({
  * servicio se niega, se dice por qué.
  */
 async function avanzar(orden: OrdenResuelta) {
+  ordenOcupada.value = orden.id
   try {
-    await ordenesService.avanzar(orden.id)
+    sustituir(await ordenesService.avanzar(orden.id))
     ui.exito(`${orden.vehiculo?.placa} avanza.`)
-    await cargar()
   } catch (e) {
     ui.error((e as ApiError).mensaje ?? 'No se pudo avanzar la orden.')
+  } finally {
+    ordenOcupada.value = null
   }
 }
 
 async function reanudar(orden: OrdenResuelta) {
+  ordenOcupada.value = orden.id
   try {
-    await ordenesService.reanudar(orden.id)
+    sustituir(await ordenesService.reanudar(orden.id))
     ui.exito(`${orden.vehiculo?.placa} vuelve a avanzar.`)
-    await cargar()
   } catch (e) {
     ui.error((e as ApiError).mensaje ?? 'No se pudo reanudar.')
+  } finally {
+    ordenOcupada.value = null
   }
 }
 
@@ -315,13 +333,15 @@ function pedirDetencion(orden: OrdenResuelta) {
 async function confirmarDetencion() {
   const orden = detencionAbierta.value
   if (!orden) return
+  ordenOcupada.value = orden.id
   try {
-    await ordenesService.detener(orden.id, motivoDetencion.value, notaDetencion.value)
+    sustituir(await ordenesService.detener(orden.id, motivoDetencion.value, notaDetencion.value))
     ui.exito(`${orden.vehiculo?.placa} queda detenida.`)
     detencionAbierta.value = null
-    await cargar()
   } catch (e) {
     ui.error((e as ApiError).mensaje ?? 'No se pudo detener la orden.')
+  } finally {
+    ordenOcupada.value = null
   }
 }
 
@@ -329,12 +349,14 @@ async function confirmarDetencion() {
 async function rotarPrioridad(orden: OrdenResuelta) {
   const orden_ = ['normal', 'alta', 'urgente'] as PrioridadOrden[]
   const siguiente = orden_[(orden_.indexOf(orden.prioridad) + 1) % orden_.length]
+  ordenOcupada.value = orden.id
   try {
-    await ordenesService.cambiarPrioridad(orden.id, siguiente)
+    sustituir(await ordenesService.cambiarPrioridad(orden.id, siguiente))
     ui.exito(`${orden.vehiculo?.placa}: prioridad ${etiquetaPrioridad[siguiente].toLowerCase()}.`)
-    await cargar()
   } catch (e) {
     ui.error((e as ApiError).mensaje ?? 'No se pudo cambiar la prioridad.')
+  } finally {
+    ordenOcupada.value = null
   }
 }
 
@@ -351,19 +373,23 @@ async function confirmarReprograma() {
   const orden = reprogramaAbierta.value
   if (!orden) return
   errores.value = {}
+  ordenOcupada.value = orden.id
   try {
-    await ordenesService.reprogramar(
-      orden.id,
-      new Date(nuevaPromesa.value).toISOString(),
-      motivoPromesa.value,
+    sustituir(
+      await ordenesService.reprogramar(
+        orden.id,
+        new Date(nuevaPromesa.value).toISOString(),
+        motivoPromesa.value,
+      ),
     )
     ui.exito(`Nueva fecha para ${orden.vehiculo?.placa}.`)
     reprogramaAbierta.value = null
-    await cargar()
   } catch (e) {
     const err = e as ApiError
     errores.value = err.campos ?? {}
     ui.error(err.mensaje ?? 'No se pudo mover la fecha.')
+  } finally {
+    ordenOcupada.value = null
   }
 }
 
@@ -457,9 +483,9 @@ async function guardar() {
     <p v-if="cargando" class="py-16 text-center text-sm text-tenue">Cargando órdenes…</p>
 
     <!--
-      Al refrescar tras una acción rápida se atenúan LOS DATOS, no la barra:
-      quien acaba de pulsar «Detener» sigue pudiendo escribir en el buscador
-      mientras llega la respuesta, y nada cambia de sitio.
+      Ninguna acción rápida atenúa nada aquí: cada una sustituye su orden con
+      lo que devolvió el servicio y solo se repinta esa tarjeta. El atenuado
+      queda para el refresco de verdad —cambiar de sede—, en la tabla.
     -->
     <KmCard v-else-if="!filtradas.length" titulo="Órdenes en el taller">
       <p class="py-10 text-center text-sm text-tenue">No hay órdenes que coincidan.</p>
@@ -467,18 +493,21 @@ async function guardar() {
 
     <!-- Tarjetas, agrupadas por lo que esta sede quiera contestar primero. -->
     <template v-else-if="vista === 'tarjetas'">
-      <section
-        v-for="g in grupos"
-        :key="g.clave"
-        class="flex flex-col gap-3"
-        :class="{ 'ts-refrescando': refrescando }"
-        :aria-busy="refrescando"
-      >
+      <section v-for="g in grupos" :key="g.clave" class="flex flex-col gap-3">
         <h2 v-if="agrupar !== 'ninguno'" class="flex items-baseline gap-2">
           <span class="ts-display text-base font-semibold text-tinta">{{ g.titulo }}</span>
           <span class="text-xs text-tenue">{{ g.ordenes.length }}</span>
         </h2>
-        <div class="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+        <!--
+          Cuando una orden cambia de grupo —deja de estar atrasada, pasa a
+          detenida— se mueve a su sitio nuevo en vez de aparecer de la nada en
+          otro lado de la pantalla.
+        -->
+        <TransitionGroup
+          name="ts-tarjeta"
+          tag="div"
+          class="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3"
+        >
           <TarjetaOrden
             v-for="o in g.ordenes"
             :key="o.id"
@@ -486,6 +515,7 @@ async function guardar() {
             :fases="fases"
             :acciones="acciones"
             :aviso-horas="avisoHoras"
+            :ocupada="ordenOcupada === o.id"
             @abrir="abrir(o)"
             @avanzar="avanzar(o)"
             @detener="pedirDetencion(o)"
@@ -493,7 +523,7 @@ async function guardar() {
             @prioridad="rotarPrioridad(o)"
             @reprogramar="pedirReprograma(o)"
           />
-        </div>
+        </TransitionGroup>
       </section>
     </template>
 
@@ -741,6 +771,28 @@ button.ts-cifra.es-activa {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ts-muted);
+}
+
+/*
+ * Reordenación de tarjetas. El `move` es lo que hace el FLIP: una orden que
+ * cambia de grupo se desliza a su sitio nuevo en vez de saltar.
+ */
+.ts-tarjeta-move,
+.ts-tarjeta-enter-active,
+.ts-tarjeta-leave-active {
+  transition:
+    transform var(--km-mov-lento) var(--km-curva),
+    opacity var(--km-mov-normal) var(--km-curva);
+}
+
+.ts-tarjeta-enter-from,
+.ts-tarjeta-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.ts-tarjeta-leave-active {
+  position: absolute;
 }
 
 .ts-conmutador {

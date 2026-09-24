@@ -36,6 +36,8 @@ const props = defineProps<{
   acciones: string[]
   /** Horas antes de la promesa a partir de las cuales se avisa. */
   avisoHoras: number
+  /** Esta orden está esperando respuesta del servidor. */
+  ocupada?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -75,7 +77,11 @@ const siguiente = computed(() => siguienteFase[o.value.fase])
 </script>
 
 <template>
-  <article class="ts-orden" :class="`es-${tono}`">
+  <article
+    class="ts-orden"
+    :class="[`es-${tono}`, { 'esta-ocupada': ocupada }]"
+    :aria-busy="ocupada"
+  >
     <!-- Cabecera: la placa manda, que es como el taller llama a los coches. -->
     <header class="flex items-start justify-between gap-3">
       <div class="min-w-0">
@@ -226,6 +232,16 @@ const siguiente = computed(() => siguienteFase[o.value.fase])
 
 .ts-orden:hover {
   border-color: var(--ts-acero-400);
+}
+
+/*
+ * Esperando respuesta. No se atenúa —atenuar dice «esto ya no vale»—: se le
+ * pone el filo de la marca, que dice «estoy en ello». Las demás tarjetas
+ * siguen vivas.
+ */
+.ts-orden.esta-ocupada {
+  border-color: var(--ts-acero-500);
+  box-shadow: var(--ts-foco);
 }
 
 /* El riel de fases: tramos iguales, el recorrido completo a la vista. */

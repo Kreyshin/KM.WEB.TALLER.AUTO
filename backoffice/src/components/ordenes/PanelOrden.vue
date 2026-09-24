@@ -137,17 +137,35 @@ watch(
 )
 
 /** Toda acción sigue el mismo guion: ejecutar, avisar, recargar, notificar. */
-async function ejecutar(accion: () => Promise<unknown>, mensaje: string) {
+/**
+ * Qué línea está esperando respuesta. Solo esa se muestra ocupada.
+ *
+ * Con un único `trabajando` global, aprobar una línea de S/ 38 apagaba el
+ * panel entero: los otros botones se deshabilitaban y todo se atenuaba. La
+ * ocupación es de la fila que se tocó, no de la pantalla.
+ */
+const lineaOcupada = ref<string | null>(null)
+
+/**
+ * Toda acción sigue el mismo guion: ejecutar, sustituir, avisar.
+ *
+ * El paso que falta —y es el que se notaba— es **no volver a pedir la orden**.
+ * El servicio ya devuelve el estado nuevo, así que se sustituye lo que hay y
+ * Vue repinta solo lo que cambió de verdad. Sin segundo viaje y sin que la
+ * pantalla se apague por cambiar un campo.
+ */
+async function ejecutar(accion: () => Promise<OrdenResuelta>, mensaje: string, itemId?: string) {
   if (!orden.value) return
-  trabajando.value = true
+  if (itemId) lineaOcupada.value = itemId
+  else trabajando.value = true
   try {
-    await accion()
+    orden.value = await accion()
     ui.exito(mensaje)
-    await cargar()
     emit('cambio')
   } catch (e) {
     ui.error((e as ApiError).mensaje ?? 'No se pudo completar la acción.')
   } finally {
+    lineaOcupada.value = null
     trabajando.value = false
   }
 }
@@ -222,10 +240,10 @@ async function agregarLinea() {
 }
 
 const alternar = (itemId: string) =>
-  ejecutar(() => ordenesService.alternarItem(orden.value!.id, itemId), 'Línea actualizada.')
+  ejecutar(() => ordenesService.alternarItem(orden.value!.id, itemId), 'Línea actualizada.', itemId)
 
 const quitar = (itemId: string) =>
-  ejecutar(() => ordenesService.quitarItem(orden.value!.id, itemId), 'Línea eliminada.')
+  ejecutar(() => ordenesService.quitarItem(orden.value!.id, itemId), 'Línea eliminada.', itemId)
 </script>
 
 <template>
@@ -341,11 +359,19 @@ const quitar = (itemId: string) =>
           </p>
         </div>
 
-        <ul class="mt-3 flex flex-col gap-1.5">
+        <!--
+          `TransitionGroup` con `name`: una línea que se añade entra deslizando
+          y la que se quita se va encogiendo, mientras las de debajo suben
+          solas (FLIP). Sin esto, quitar una línea hace saltar la lista entera
+          de golpe, que es lo que se lee como «se recargó».
+        -->
+        <TransitionGroup tag="ul" name="ts-linea" class="relative mt-3 flex flex-col gap-1.5">
           <li
             v-for="item in orden.items"
             :key="item.id"
-            class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-linea bg-panel-2 px-3 py-2"
+            class="ts-linea flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-linea bg-panel-2 px-3 py-2"
+            :class="{ 'esta-ocupada': lineaOcupada === item.id }"
+            :aria-busy="lineaOcupada === item.id"
           >
             <KmBadge :tono="item.tipo === 'servicio' ? 'acero' : 'neutro'">
               {{ item.tipo === 'servicio' ? 'Obra' : 'Pieza' }}
@@ -360,16 +386,24 @@ const quitar = (itemId: string) =>
               v-if="aprobacionParcial"
               :variante="item.aprobado ? 'secundario' : 'fantasma'"
               tamano="sm"
+              :cargando="lineaOcupada === item.id"
               @click="alternar(item.id)"
             >
               {{ item.aprobado ? '✓ Aprobada' : 'Sin aprobar' }}
             </KmButton>
-            <KmButton variante="fantasma" tamano="sm" @click="quitar(item.id)">Quitar</KmButton>
+            <KmButton
+              variante="fantasma"
+              tamano="sm"
+              :disabled="lineaOcupada === item.id"
+              @click="quitar(item.id)"
+            >
+              Quitar
+            </KmButton>
           </li>
-          <li v-if="!orden.items.length" class="py-4 text-center text-sm text-tenue">
+          <li v-if="!orden.items.length" key="vacio" class="py-4 text-center text-sm text-tenue">
             El presupuesto está vacío.
           </li>
-        </ul>
+        </TransitionGroup>
 
         <div class="mt-4 flex flex-wrap items-end gap-3">
           <KmField v-slot="{ id }" label="Añadir" class="w-40">
@@ -448,3 +482,50 @@ const quitar = (itemId: string) =>
     </template>
   </KmModal>
 </template>
+
+<style scoped>
+/*
+ * La línea que espera respuesta.
+ *
+ * No se atenúa —atenuar dice «esto ya no vale»—: se marca con el filo, que
+ * dice «estoy en ello». El resto del presupuesto sigue vivo y se puede seguir
+ * tocando, que es justo lo que antes no pasaba.
+ */
+.ts-linea {
+  transition:
+    border-color var(--km-mov-rapido) var(--km-curva),
+    background-color var(--km-mov-rapido) var(--km-curva),
+    transform var(--km-mov-normal) var(--km-curva),
+    opacity var(--km-mov-normal) var(--km-curva);
+}
+
+.ts-linea.esta-ocupada {
+  border-color: var(--ts-acero-400);
+  background-color: var(--color-seleccion);
+}
+
+/* Entra deslizando desde arriba; el sitio ya se lo hace el FLIP de debajo. */
+.ts-linea-enter-from {
+  opacity: 0;
+  transform: translateY(-0.5rem);
+}
+
+/*
+ * Al salir se saca del flujo para que las de abajo empiecen a subir de
+ * inmediato en vez de esperar a que termine de desvanecerse.
+ */
+.ts-linea-leave-active {
+  position: absolute;
+  width: 100%;
+}
+
+.ts-linea-leave-to {
+  opacity: 0;
+  transform: translateX(1.5rem);
+}
+
+/* El FLIP: las que se quedan se desplazan a su sitio nuevo en vez de saltar. */
+.ts-linea-move {
+  transition: transform var(--km-mov-normal) var(--km-curva);
+}
+</style>

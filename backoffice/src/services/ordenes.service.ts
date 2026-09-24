@@ -32,6 +32,15 @@ function totales(items: ItemOrden[]) {
   }
 }
 
+/**
+ * Una mutación devuelve el estado nuevo, no un acuse de recibo.
+ *
+ * Si `detener` devolviera solo «hecho», la pantalla tendría que volver a
+ * pedir la orden entera para enterarse de lo que ella misma acaba de
+ * provocar: dos viajes, y entre medias un parpadeo de recarga por cambiar un
+ * campo. Devolviendo la orden ya resuelta, quien llamó sustituye lo que tiene
+ * y no toca nada más.
+ */
 function resolver(o: OrdenTrabajo): OrdenResuelta {
   return {
     ...o,
@@ -112,7 +121,7 @@ export const ordenesService = {
    * Dos reglas que el taller impone y el sistema sostiene: no se repara sin
    * aprobación del cliente, y no se entrega una orden detenida.
    */
-  async avanzar(id: string): Promise<OrdenTrabajo> {
+  async avanzar(id: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
 
@@ -148,11 +157,11 @@ export const ordenesService = {
       // Al salir, la bahía queda libre para el siguiente.
       cambios.bahiaId = undefined
     }
-    return repo.actualizar(id, cambios)
+    return resolver(await repo.actualizar(id, cambios))
   },
 
   /** El cliente aprueba el presupuesto: se guarda quién y cuándo. */
-  async aprobar(id: string): Promise<OrdenTrabajo> {
+  async aprobar(id: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
     if (!orden.items.some((i) => i.aprobado)) {
@@ -168,35 +177,39 @@ export const ordenesService = {
       cambios.detenidaDesde = undefined
       cambios.notaDetencion = undefined
     }
-    return repo.actualizar(id, cambios)
+    return resolver(await repo.actualizar(id, cambios))
   },
 
   /**
    * Detiene la orden sin cambiarla de fase: cuando se reanude, el trabajo
    * sigue donde estaba. Ese es el motivo de separar las dos dimensiones.
    */
-  async detener(id: string, motivo: MotivoDetencion, nota?: string): Promise<OrdenTrabajo> {
+  async detener(id: string, motivo: MotivoDetencion, nota?: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
     if (!fasesActivas.includes(orden.fase)) {
       throw { mensaje: 'Una orden entregada o anulada ya no se detiene.' }
     }
-    return repo.actualizar(id, {
-      detencion: motivo,
-      detenidaDesde: new Date().toISOString(),
-      notaDetencion: nota,
-    })
+    return resolver(
+      await repo.actualizar(id, {
+        detencion: motivo,
+        detenidaDesde: new Date().toISOString(),
+        notaDetencion: nota,
+      }),
+    )
   },
 
-  async reanudar(id: string): Promise<OrdenTrabajo> {
+  async reanudar(id: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
     if (!orden.detencion) throw { mensaje: 'La orden no está detenida.' }
-    return repo.actualizar(id, {
-      detencion: undefined,
-      detenidaDesde: undefined,
-      notaDetencion: undefined,
-    })
+    return resolver(
+      await repo.actualizar(id, {
+        detencion: undefined,
+        detenidaDesde: undefined,
+        notaDetencion: undefined,
+      }),
+    )
   },
 
   /** Asigna bahía y técnico; una bahía no operativa no admite trabajo. */
@@ -207,7 +220,7 @@ export const ordenesService = {
    * es editar un campo: es romper algo y decir por qué. Cuando la
    * configuración lo exige, sin motivo no se mueve.
    */
-  async reprogramar(id: string, promesa: string, motivo?: string): Promise<OrdenTrabajo> {
+  async reprogramar(id: string, promesa: string, motivo?: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
 
@@ -219,19 +232,19 @@ export const ordenesService = {
     orden.promesaMotivo = motivo?.trim() || undefined
     orden.promesaCambiadaEl = new Date().toISOString()
     persistir()
-    return latencia(orden)
+    return latencia(resolver(orden))
   },
 
   /** Sube o baja una orden en la cola del taller. */
-  async cambiarPrioridad(id: string, prioridad: PrioridadOrden): Promise<OrdenTrabajo> {
+  async cambiarPrioridad(id: string, prioridad: PrioridadOrden): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
     orden.prioridad = prioridad
     persistir()
-    return latencia(orden)
+    return latencia(resolver(orden))
   },
 
-  async asignar(id: string, bahiaId?: string, tecnicoId?: string): Promise<OrdenTrabajo> {
+  async asignar(id: string, bahiaId?: string, tecnicoId?: string): Promise<OrdenResuelta> {
     if (bahiaId) {
       const bahia = db.bahias.find((b) => b.id === bahiaId)
       if (!bahia) throw { mensaje: 'Bahía no encontrada.' }
@@ -248,11 +261,11 @@ export const ordenesService = {
         throw { mensaje: `La bahía ${bahia.codigo} ya tiene la ${ocupada.codigo} dentro.` }
       }
     }
-    return repo.actualizar(id, { bahiaId, tecnicoId })
+    return resolver(await repo.actualizar(id, { bahiaId, tecnicoId }))
   },
 
   /** Añade una línea al presupuesto y descuenta stock si es un repuesto. */
-  async agregarItem(id: string, item: Omit<ItemOrden, 'id'>): Promise<OrdenTrabajo> {
+  async agregarItem(id: string, item: Omit<ItemOrden, 'id'>): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
     if (item.cantidad <= 0) throw errorCampo('cantidad', 'La cantidad debe ser mayor que cero.')
@@ -270,25 +283,25 @@ export const ordenesService = {
 
     orden.items.push({ ...item, id: nuevoId('i') })
     persistir()
-    return latencia(orden)
+    return latencia(resolver(orden))
   },
 
-  async quitarItem(id: string, itemId: string): Promise<OrdenTrabajo> {
+  async quitarItem(id: string, itemId: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
     orden.items = orden.items.filter((i) => i.id !== itemId)
     persistir()
-    return latencia(orden)
+    return latencia(resolver(orden))
   },
 
   /** El cliente puede rechazar una línea sin tumbar el resto del presupuesto. */
-  async alternarItem(id: string, itemId: string): Promise<OrdenTrabajo> {
+  async alternarItem(id: string, itemId: string): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     const item = orden?.items.find((i) => i.id === itemId)
     if (!orden || !item) throw { mensaje: 'Línea no encontrada.' }
     item.aprobado = !item.aprobado
     persistir()
-    return latencia(orden)
+    return latencia(resolver(orden))
   },
 
   /**
@@ -302,7 +315,7 @@ export const ordenesService = {
    * Al guardarla se actualiza también el odómetro del vehículo: la vuelta al
    * coche es el único momento en que alguien lo mira de verdad.
    */
-  async guardarInspeccion(id: string, inspeccion: Inspeccion): Promise<OrdenTrabajo> {
+  async guardarInspeccion(id: string, inspeccion: Inspeccion): Promise<OrdenResuelta> {
     const orden = db.ordenes.find((o) => o.id === id)
     if (!orden) throw { mensaje: 'Orden no encontrada.' }
 
@@ -320,7 +333,7 @@ export const ordenesService = {
     }
 
     persistir()
-    return repo.actualizar(id, { inspeccion, kilometraje: inspeccion.kilometraje })
+    return resolver(await repo.actualizar(id, { inspeccion, kilometraje: inspeccion.kilometraje }))
   },
 
   /** Las órdenes que todavía no tienen hecha la vuelta al vehículo. */
