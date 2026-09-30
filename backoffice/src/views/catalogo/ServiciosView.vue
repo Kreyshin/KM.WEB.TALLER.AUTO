@@ -5,7 +5,6 @@ import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
-import KmSwitch from '@/components/ui/KmSwitch.vue'
 import { catalogoService } from '@/services/catalogo.service'
 import type { Especialidad, NuevoServicio, Servicio } from '@/types'
 import type { ColumnaTabla, OpcionSelect } from '@/types/ui'
@@ -65,6 +64,7 @@ function validar(s: NuevoServicio): Record<string, string> {
   <KmCatalogo
     titulo="Servicios y baremos"
     subtitulo="Cada trabajo con su tiempo estándar: con él se cotiza y se promete una entrega."
+    descripcion-estado="Un servicio inactivo deja de ofrecerse, pero sigue en el histórico de órdenes."
     entidad="servicio"
     :servicio="catalogoService.servicios"
     :columnas="columnas"
@@ -149,12 +149,6 @@ function validar(s: NuevoServicio): Record<string, string> {
           {{ formatearSoles((borrador.horas || 0) * (borrador.precioHora || 0)) }}
         </strong>
       </p>
-
-      <KmSwitch
-        v-model="borrador.activo"
-        etiqueta="Servicio activo"
-        descripcion="Uno inactivo deja de ofrecerse, pero sigue en el histórico de órdenes."
-      />
     </template>
   </KmCatalogo>
 </template>

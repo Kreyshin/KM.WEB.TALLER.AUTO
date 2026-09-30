@@ -8,7 +8,6 @@ import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
-import KmSwitch from '@/components/ui/KmSwitch.vue'
 import { almacenService } from '@/services/almacen.service'
 import type { CategoriaRepuesto, NuevoRepuesto, Repuesto } from '@/types'
 import type { ColumnaTabla, OpcionSelect } from '@/types/ui'
@@ -351,8 +350,6 @@ function margen(costo: number, precio: number) {
             <KmInput :id="id" v-model="borrador.ubicacion" placeholder="A-3-2" />
           </KmField>
         </div>
-
-        <KmSwitch v-model="borrador.activo" etiqueta="Repuesto activo" />
       </template>
     </KmCatalogo>
   </div>

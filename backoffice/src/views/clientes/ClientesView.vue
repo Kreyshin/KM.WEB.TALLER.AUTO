@@ -132,7 +132,6 @@ function validar(c: NuevoCliente): Record<string, string> {
         etiqueta="Es empresa con flota"
         descripcion="Cambia el trato comercial y obliga a facturar con RUC."
       />
-      <KmSwitch v-model="borrador.activo" etiqueta="Cliente activo" />
     </template>
   </KmCatalogo>
 </template>

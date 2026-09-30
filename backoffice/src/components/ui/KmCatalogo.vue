@@ -66,6 +66,13 @@ const props = withDefaults(
      * Sin ella se muestra un texto genérico.
      */
     consecuenciasEstado?: (id: string, activar: boolean) => Promise<string[]>
+    /**
+     * Qué significa desactivar este registro, bajo el interruptor de estado.
+     * Sin ella se explica en genérico, que sirve para un catálogo cualquiera
+     * pero no dice nada del oficio: «una cuenta inactiva no puede iniciar
+     * sesión» es lo que hace falta saber antes de tocar el interruptor.
+     */
+    descripcionEstado?: string
     /** Datos del ERP: se consultan pero no se crean, editan ni eliminan. */
     soloLectura?: boolean
     /**
@@ -444,6 +451,7 @@ defineExpose({ recargar, abrirNuevo })
           :original="activoOriginal"
           :texto-activo="femenino ? 'Activa' : 'Activo'"
           :texto-inactivo="femenino ? 'Inactiva' : 'Inactivo'"
+          :descripcion="descripcionEstado"
         />
       </form>
       <template #footer>
