@@ -166,6 +166,17 @@ export interface VehiculoResuelto extends Vehiculo {
   cliente?: Cliente
 }
 
+/**
+ * Alguien de carne y hueso, identificado. No es un `Cliente` del padrón: es
+ * quien está delante del mostrador en un momento concreto, que puede no estar
+ * dado de alta y no por eso deja de tener que constar.
+ */
+export interface PersonaIdentificada {
+  nombre: string
+  tipoDocumento: TipoDocumento
+  documento: string
+}
+
 // ── Tenencia: quién trae el vehículo y con qué derecho ───────────────────────
 
 /**
@@ -221,6 +232,20 @@ export interface VerificacionTenencia {
   verificadoPor: string
   /** ISO. */
   verificadoEl: string
+}
+
+/** Quién se llevó el vehículo, con qué derecho y quién se lo entregó. */
+export interface Entrega {
+  /** ISO. */
+  fecha: string
+  /** Quién del taller hizo la entrega. */
+  entregadoPor: string
+  receptor: PersonaIdentificada
+  /** Su relación con el vehículo, comprobada al salir. */
+  relacion: RelacionTenencia
+  /** Qué se vio si no era el titular. */
+  respaldo?: string
+  nota?: string
 }
 
 // ── Órdenes de trabajo ───────────────────────────────────────────────────────
@@ -285,6 +310,14 @@ export interface OrdenTrabajo {
   promesaCambiadaEl?: string
   /** ISO. Cuándo se entregó de verdad. */
   entrega?: string
+  /**
+   * A quién se le entregó el vehículo y quién se lo dio.
+   *
+   * Una fecha sola no dice en manos de quién salió el coche. Quien recoge
+   * puede no ser quien lo dejó —lo dejó el hijo, lo recoge la madre—, así que
+   * se comprueba al salir igual que al entrar.
+   */
+  entregaA?: Entrega
   /** El cliente aprobó el presupuesto. Sin esto no se toca el vehículo. */
   aprobada?: boolean
   /** ISO. */
@@ -390,6 +423,14 @@ export interface Inspeccion {
   observaciones?: string
   /** Trazo de la firma del cliente. Sin firma, la hoja no protege a nadie. */
   firma?: string
+  /**
+   * Quién firmó, con su documento.
+   *
+   * Un trazo anónimo no protege más que la ausencia de trazo: lo que se firma
+   * es el estado en que entró el coche, y eso solo vale si consta quién lo
+   * aceptó. No tiene por qué ser el titular: firma quien lo deja.
+   */
+  firmante?: PersonaIdentificada
 }
 
 // ── Catálogo de trabajo ──────────────────────────────────────────────────────

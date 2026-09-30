@@ -94,6 +94,8 @@ function abrir(orden: OrdenResuelta) {
 
 /** Avanzar desde el propio tablero: el técnico no debería abrir una ficha. */
 async function avanzar(orden: OrdenResuelta) {
+  // Entregar pide saber a quién: eso no cabe en un atajo, se abre la ficha.
+  if (orden.fase === 'lista') return abrir(orden)
   try {
     await ordenesService.avanzar(orden.id)
     ui.exito(`${orden.codigo} avanzó de fase.`)

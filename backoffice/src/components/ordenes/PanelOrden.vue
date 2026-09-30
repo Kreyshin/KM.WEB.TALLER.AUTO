@@ -7,7 +7,9 @@ import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmModal from '@/components/ui/KmModal.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
+import KmPersona from '@/components/ui/KmPersona.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
+import KmSwitch from '@/components/ui/KmSwitch.vue'
 import { almacenService } from '@/services/almacen.service'
 import { bahiasService } from '@/services/bahias.service'
 import { catalogoService } from '@/services/catalogo.service'
@@ -15,8 +17,16 @@ import { useCarga } from '@/composables/useCarga'
 import { ordenesService } from '@/services/ordenes.service'
 import { parametrosService } from '@/services/parametros.service'
 import { usuariosService } from '@/services/usuarios.service'
+import { useAuthStore } from '@/stores/auth.store'
 import { useUiStore } from '@/stores/ui.store'
-import type { ApiError, MotivoDetencion, OrdenResuelta } from '@/types'
+import { etiquetaRelacion } from '@/services/tenencia.service'
+import type {
+  ApiError,
+  MotivoDetencion,
+  OrdenResuelta,
+  PersonaIdentificada,
+  RelacionTenencia,
+} from '@/types'
 import type { OpcionSelect } from '@/types/ui'
 import { desdeHace, faltanPara, formatearHoras, formatearKm, formatearSoles } from '@/utils/formato'
 import {
@@ -170,8 +180,99 @@ async function ejecutar(accion: () => Promise<OrdenResuelta>, mensaje: string, i
   }
 }
 
-const avanzar = () =>
+const auth = useAuthStore()
+
+/*
+ * Entregar no es «la fase siguiente»: es poner el coche en manos de alguien,
+ * y hay que saber en las de quién. Quien recoge no siempre es quien lo dejó.
+ */
+const modalEntrega = ref(false)
+const erroresEntrega = ref<Record<string, string>>({})
+const receptor = ref<PersonaIdentificada>({ nombre: '', tipoDocumento: 'dni', documento: '' })
+const relacionEntrega = ref<RelacionTenencia>('titular')
+const respaldoEntrega = ref('')
+const notaEntrega = ref('')
+const loRecogeOtro = ref(false)
+
+const verificaReceptor = computed(
+  () => parametrosService.valor<string>('entrega.verificarReceptor') !== 'no',
+)
+
+const opcionesRelacion: OpcionSelect[] = (
+  ['titular', 'familiar', 'empresa', 'autorizado', 'otro'] as RelacionTenencia[]
+).map((r) => ({ valor: r, etiqueta: etiquetaRelacion[r] }))
+
+/** Quien dejó el coche es la propuesta; si recoge otro, se corrige. */
+function abrirEntrega() {
+  erroresEntrega.value = {}
+  loRecogeOtro.value = false
+  relacionEntrega.value = orden.value?.tenencia?.relacion ?? 'titular'
+  respaldoEntrega.value = ''
+  notaEntrega.value = ''
+  const firmante = orden.value?.inspeccion?.firmante
+  receptor.value = firmante
+    ? { ...firmante }
+    : {
+        nombre: orden.value?.cliente?.nombre ?? '',
+        tipoDocumento: orden.value?.cliente?.tipoDocumento ?? 'dni',
+        documento: orden.value?.cliente?.documento ?? '',
+      }
+}
+
+function alCambiarReceptor(otro: boolean) {
+  loRecogeOtro.value = otro
+  if (otro) {
+    receptor.value = { nombre: '', tipoDocumento: 'dni', documento: '' }
+    relacionEntrega.value = 'otro'
+  } else {
+    abrirEntregaMisma()
+  }
+}
+
+function abrirEntregaMisma() {
+  const firmante = orden.value?.inspeccion?.firmante
+  receptor.value = firmante
+    ? { ...firmante }
+    : {
+        nombre: orden.value?.cliente?.nombre ?? '',
+        tipoDocumento: orden.value?.cliente?.tipoDocumento ?? 'dni',
+        documento: orden.value?.cliente?.documento ?? '',
+      }
+  relacionEntrega.value = orden.value?.tenencia?.relacion ?? 'titular'
+}
+
+async function confirmarEntrega() {
+  erroresEntrega.value = {}
+  trabajando.value = true
+  try {
+    orden.value = await ordenesService.entregar(orden.value!.id, {
+      receptor: receptor.value,
+      relacion: relacionEntrega.value,
+      respaldo: respaldoEntrega.value,
+      nota: notaEntrega.value,
+      entregadoPor: auth.usuario?.id ?? '',
+    })
+    ui.exito(`Entregado a ${receptor.value.nombre}.`)
+    modalEntrega.value = false
+    emit('cambio')
+  } catch (e) {
+    const err = e as ApiError
+    erroresEntrega.value = err.campos ?? {}
+    ui.error(err.mensaje ?? 'No se pudo entregar.')
+  } finally {
+    trabajando.value = false
+  }
+}
+
+function avanzar() {
+  // Desde «lista», avanzar es entregar, y entregar pide saber a quién.
+  if (orden.value?.fase === 'lista' && verificaReceptor.value) {
+    abrirEntrega()
+    modalEntrega.value = true
+    return
+  }
   ejecutar(() => ordenesService.avanzar(orden.value!.id), 'La orden avanzó de fase.')
+}
 
 const aprobar = () =>
   ejecutar(
@@ -458,6 +559,54 @@ const quitar = (itemId: string) =>
       </template>
     </template>
   </KmDrawer>
+
+  <KmModal v-model="modalEntrega" titulo="Entregar el vehículo" ancho="md">
+    <div class="flex flex-col gap-4">
+      <p class="text-sm text-tenue">
+        El coche sale del taller. Queda constancia de en manos de quién, igual que quedó de quién lo
+        trajo.
+      </p>
+
+      <KmSwitch
+        :model-value="loRecogeOtro"
+        etiqueta="Lo recoge otra persona"
+        descripcion="No siempre se lo lleva quien lo dejó."
+        @update:model-value="alCambiarReceptor"
+      />
+
+      <KmPersona
+        v-model="receptor"
+        :error-nombre="erroresEntrega.nombre"
+        :error-documento="erroresEntrega.documento"
+      />
+
+      <KmField v-slot="{ id }" label="Relación con el vehículo">
+        <KmSelect :id="id" v-model="relacionEntrega" :opciones="opcionesRelacion" />
+      </KmField>
+
+      <KmField
+        v-if="relacionEntrega !== 'titular'"
+        v-slot="{ id }"
+        label="Documento que lo respalda"
+        ayuda="Qué se vio para dejarle llevarse el vehículo."
+      >
+        <KmInput
+          :id="id"
+          v-model="respaldoEntrega"
+          placeholder="Autorización firmada del titular"
+        />
+      </KmField>
+
+      <KmField v-slot="{ id }" label="Nota">
+        <KmInput :id="id" v-model="notaEntrega" placeholder="Se le explicó la garantía." />
+      </KmField>
+    </div>
+
+    <template #footer>
+      <KmButton variante="fantasma" @click="modalEntrega = false">Cancelar</KmButton>
+      <KmButton :cargando="trabajando" @click="confirmarEntrega">Entregar</KmButton>
+    </template>
+  </KmModal>
 
   <KmModal v-model="modalDetener" titulo="Detener la orden">
     <p class="text-sm text-tenue">

@@ -77,3 +77,31 @@ abrir una orden saltándosela.**
 
 En la orden, para siempre: la relación comprobada, el documento que se vio, la
 nota del asesor, **quién lo comprobó y cuándo**.
+
+## La otra puerta: la salida
+
+El mismo control, en la entrega. Una fecha sola no dice en manos de quién
+salió el coche, y quien recoge no siempre es quien lo dejó —lo trajo el hijo y
+lo recoge la madre, o al revés—.
+
+Al entregar se anota **nombre y documento de quien se lo lleva**, su relación
+con el vehículo y, si no es el titular, qué documento lo respalda. Queda
+guardado junto a quién del taller hizo la entrega.
+
+Por eso entregar dejó de ser «la fase siguiente»: desde
+<span class="estado estado-avanza">lista</span>, el atajo de la tarjeta abre
+la ficha, porque saber a quién se entrega no cabe en un clic.
+
+| Parámetro                        | Opciones                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| **Comprobar a quién se entrega** | En cada entrega _(por defecto)_ · Solo si recoge otra persona · No comprobar |
+
+## Y la firma, con firmante
+
+La hoja de ingreso guardaba el trazo, pero no de quién era. Un garabato
+anónimo no protege más que la ausencia de garabato: lo que se firma es el
+estado en que entró el coche, y eso solo vale si consta quién lo aceptó.
+
+Ahora la hoja pide **nombre y documento de quien firma**, antes del trazo. Se
+propone el cliente de la orden, pero se corrige: firma quien deja el vehículo,
+que no tiene por qué ser el titular.

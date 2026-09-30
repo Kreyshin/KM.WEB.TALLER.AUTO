@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ordenesService } from './ordenes.service'
 import { vehiculosService } from './vehiculos.service'
-import { reiniciarMock } from './mock/db'
+import { db, reiniciarMock } from './mock/db'
 
 /**
  * Las reglas que sostienen la vertical.
@@ -114,6 +114,11 @@ describe('hoja de ingreso', () => {
     puntos: { luces: 'conforme' as const, carroceria: 'observado' as const },
     pertenencias: ['Gata y llave de ruedas'],
     firma: 'data:image/png;base64,iVBORw0KGgo=',
+    firmante: {
+      nombre: 'Marco Salcedo Pinto',
+      tipoDocumento: 'dni' as const,
+      documento: '41258963',
+    },
   }
 
   it('el nivel de combustible va en octavos, de 0 a 8', async () => {
@@ -145,5 +150,86 @@ describe('hoja de ingreso', () => {
     const despues = await ordenesService.sinInspeccion(LOCAL)
     expect(despues.some((o) => o.id === primera.id)).toBe(false)
     expect(despues.length).toBe(pendientes.length - 1)
+  })
+})
+
+/**
+ * La salida del vehículo, que es el espejo de la entrada.
+ *
+ * En la puerta se comprueba con qué derecho se deja el coche. Aquí, en manos
+ * de quién sale, que no tiene por qué ser la misma persona.
+ */
+describe('entrega', () => {
+  const receptor = {
+    nombre: 'Lucía Bernales Ayala',
+    tipoDocumento: 'dni' as const,
+    documento: '09887456',
+  }
+
+  async function unaLista() {
+    const orden = db.ordenes.find((o) => o.fase === 'lista')
+    expect(orden).toBeDefined()
+    return orden!
+  }
+
+  it('avanzar ya no entrega: hay que decir en manos de quién sale', async () => {
+    const orden = await unaLista()
+    await expect(ordenesService.avanzar(orden.id)).rejects.toMatchObject({
+      mensaje: expect.stringContaining('quién recoge'),
+    })
+    expect(db.ordenes.find((o) => o.id === orden.id)?.fase).toBe('lista')
+  })
+
+  it('guarda a quién se entregó, con qué derecho y quién se lo dio', async () => {
+    const orden = await unaLista()
+    const entregada = await ordenesService.entregar(orden.id, {
+      receptor,
+      relacion: 'familiar',
+      respaldo: 'DNI del titular',
+      entregadoPor: 'u2',
+    })
+
+    expect(entregada.fase).toBe('entregada')
+    expect(entregada.entregaA?.receptor.documento).toBe('09887456')
+    expect(entregada.entregaA?.relacion).toBe('familiar')
+    expect(entregada.entregaA?.entregadoPor).toBe('u2')
+    // La bahía queda libre para el siguiente.
+    expect(entregada.bahiaId).toBeUndefined()
+  })
+
+  it('sin documento no consta a quién se entregó', async () => {
+    const orden = await unaLista()
+    await expect(
+      ordenesService.entregar(orden.id, {
+        receptor: { ...receptor, documento: '' },
+        relacion: 'titular',
+        entregadoPor: 'u2',
+      }),
+    ).rejects.toMatchObject({ campos: { documento: expect.any(String) } })
+  })
+
+  it('no se entrega lo que aún no está listo', async () => {
+    const enTaller = db.ordenes.find((o) => o.fase === 'reparacion')!
+    await expect(
+      ordenesService.entregar(enTaller.id, { receptor, relacion: 'titular', entregadoPor: 'u2' }),
+    ).rejects.toMatchObject({ mensaje: expect.stringContaining('aún no está listo') })
+  })
+})
+
+describe('firmante de la hoja', () => {
+  it('un trazo sin nombre no cierra la hoja', async () => {
+    const [orden] = await ordenesService.enTaller(LOCAL)
+    await expect(
+      ordenesService.guardarInspeccion(orden!.id, {
+        fecha: new Date().toISOString(),
+        usuarioId: 'u2',
+        kilometraje: 1000,
+        combustible: 4,
+        marcas: [],
+        puntos: {},
+        pertenencias: [],
+        firma: 'data:image/png;base64,iVBORw0KGgo=',
+      }),
+    ).rejects.toMatchObject({ campos: { firmante: expect.any(String) } })
   })
 })

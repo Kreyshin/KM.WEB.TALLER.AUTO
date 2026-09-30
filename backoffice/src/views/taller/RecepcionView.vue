@@ -11,6 +11,7 @@ import KmCheckbox from '@/components/ui/KmCheckbox.vue'
 import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
+import KmPersona from '@/components/ui/KmPersona.vue'
 import { ordenesService } from '@/services/ordenes.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLocalStore } from '@/stores/local.store'
@@ -77,6 +78,7 @@ function nuevaHoja(): Inspeccion {
     pertenencias: [],
     observaciones: '',
     firma: undefined,
+    firmante: { nombre: '', tipoDocumento: 'dni', documento: '' },
   }
 }
 
@@ -95,7 +97,13 @@ const observados = computed(
   () => Object.values(hoja.value.puntos).filter((e) => e === 'observado').length,
 )
 
-const listaParaCerrar = computed(() => Boolean(hoja.value.firma) && hoja.value.kilometraje > 0)
+const listaParaCerrar = computed(
+  () =>
+    Boolean(hoja.value.firma) &&
+    hoja.value.kilometraje > 0 &&
+    Boolean(hoja.value.firmante?.nombre.trim()) &&
+    Boolean(hoja.value.firmante?.documento.trim()),
+)
 
 async function cargar() {
   const localId = localStore.localId
@@ -105,10 +113,24 @@ async function cargar() {
     if (ordenId.value) {
       orden.value = await ordenesService.obtenerResuelta(ordenId.value)
       hoja.value = orden.value.inspeccion
-        ? { ...orden.value.inspeccion }
+        ? {
+            ...orden.value.inspeccion,
+            firmante: orden.value.inspeccion.firmante ?? {
+              nombre: orden.value.cliente?.nombre ?? '',
+              tipoDocumento: orden.value.cliente?.tipoDocumento ?? 'dni',
+              documento: orden.value.cliente?.documento ?? '',
+            },
+          }
         : {
             ...nuevaHoja(),
             kilometraje: orden.value.vehiculo?.kilometraje ?? 0,
+            // Se propone quien consta como cliente de la orden; si firma otro,
+            // se corrige aquí, que es cuando está delante.
+            firmante: {
+              nombre: orden.value.cliente?.nombre ?? '',
+              tipoDocumento: orden.value.cliente?.tipoDocumento ?? 'dni',
+              documento: orden.value.cliente?.documento ?? '',
+            },
           }
     } else {
       orden.value = null
@@ -160,6 +182,11 @@ function alternarPertenencia(p: string) {
 async function guardar() {
   if (!orden.value) return
   errores.value = {}
+  if (!hoja.value.firmante?.documento.trim()) {
+    errores.value.firmante = 'Sin saber quién firma, el trazo no vale de nada.'
+    ui.error('Falta identificar a quien firma.')
+    return
+  }
   if (!hoja.value.firma) {
     errores.value.firma = 'Sin la firma del cliente la hoja no protege a nadie.'
     ui.error('Falta la firma del cliente.')
@@ -386,6 +413,21 @@ async function guardar() {
         </KmCard>
 
         <KmCard titulo="Conformidad">
+          <!--
+            Quién firma va antes del trazo: un garabato anónimo no protege más
+            que la ausencia de garabato, y quien deja el coche no siempre es el
+            titular.
+          -->
+          <div class="mb-5 flex flex-col gap-2">
+            <h3 class="ts-etiqueta text-tenue">Quién firma</h3>
+            <KmPersona
+              v-if="hoja.firmante"
+              v-model="hoja.firmante"
+              :error-nombre="errores.firmante"
+              :error-documento="errores.firmante"
+            />
+          </div>
+
           <FirmaCliente v-model="hoja.firma" />
           <p
             v-if="errores.firma"

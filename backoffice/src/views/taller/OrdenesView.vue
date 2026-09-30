@@ -301,6 +301,8 @@ const opcionesMotivo: OpcionSelect[] = motivosDetencion.map((m) => ({
  * servicio se niega, se dice por qué.
  */
 async function avanzar(orden: OrdenResuelta) {
+  // Entregar pide saber a quién: eso no cabe en un atajo, se abre la ficha.
+  if (orden.fase === 'lista') return abrir(orden)
   ordenOcupada.value = orden.id
   try {
     sustituir(await ordenesService.avanzar(orden.id))

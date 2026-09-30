@@ -10,6 +10,8 @@ import type {
   OrdenTrabajo,
   PrioridadOrden,
   Paginado,
+  PersonaIdentificada,
+  RelacionTenencia,
 } from '@/types'
 import { fasesActivas, siguienteFase } from '@/utils/ordenes'
 import { parametrosService } from './parametros.service'
@@ -151,6 +153,18 @@ export const ordenesService = {
       }
     }
 
+    /*
+     * Entregar no es «la fase siguiente»: es poner el coche en manos de
+     * alguien. Por eso sale de `avanzar` y tiene su propio método, que exige
+     * saber en manos de quién.
+     */
+    if (
+      destino === 'entregada' &&
+      parametrosService.valor<string>('entrega.verificarReceptor') !== 'no'
+    ) {
+      throw { mensaje: 'Para entregar hay que anotar quién recoge el vehículo.' }
+    }
+
     const cambios: Partial<OrdenTrabajo> = { fase: destino }
     if (destino === 'entregada') {
       cambios.entrega = new Date().toISOString()
@@ -178,6 +192,62 @@ export const ordenesService = {
       cambios.notaDetencion = undefined
     }
     return resolver(await repo.actualizar(id, cambios))
+  },
+
+  /**
+   * Entrega el vehículo y deja constancia de en manos de quién.
+   *
+   * Es el espejo de la comprobación de entrada. Allí se pregunta con qué
+   * derecho se deja el coche; aquí, con qué derecho se lo lleva, que no tiene
+   * por qué ser la misma persona ni el mismo derecho.
+   */
+  async entregar(
+    id: string,
+    datos: {
+      receptor: PersonaIdentificada
+      relacion: RelacionTenencia
+      respaldo?: string
+      nota?: string
+      entregadoPor: string
+    },
+  ): Promise<OrdenResuelta> {
+    const orden = db.ordenes.find((o) => o.id === id)
+    if (!orden) throw { mensaje: 'Orden no encontrada.' }
+    if (orden.fase === 'entregada') throw { mensaje: 'Esta orden ya se entregó.' }
+    if (orden.fase !== 'lista') {
+      throw { mensaje: 'El vehículo aún no está listo para entregar.' }
+    }
+
+    const politica = parametrosService.valor<string>('entrega.verificarReceptor')
+    if (politica !== 'no') {
+      if (!datos.receptor?.nombre?.trim()) {
+        throw errorCampo('nombre', 'Anota a nombre de quién sale el vehículo.')
+      }
+      if (!datos.receptor?.documento?.trim()) {
+        throw errorCampo('documento', 'Sin documento no consta a quién se entregó.')
+      }
+    }
+
+    return resolver(
+      await repo.actualizar(id, {
+        fase: 'entregada',
+        entrega: new Date().toISOString(),
+        entregaA: {
+          fecha: new Date().toISOString(),
+          entregadoPor: datos.entregadoPor,
+          receptor: {
+            nombre: datos.receptor.nombre.trim(),
+            tipoDocumento: datos.receptor.tipoDocumento,
+            documento: datos.receptor.documento.trim(),
+          },
+          relacion: datos.relacion,
+          respaldo: datos.respaldo?.trim() || undefined,
+          nota: datos.nota?.trim() || undefined,
+        },
+        // Al salir, la bahía queda libre para el siguiente.
+        bahiaId: undefined,
+      }),
+    )
   },
 
   /**
@@ -324,6 +394,10 @@ export const ordenesService = {
     }
     if (inspeccion.combustible < 0 || inspeccion.combustible > 8) {
       throw errorCampo('combustible', 'El nivel va de 0 a 8 octavos.')
+    }
+    // Un trazo anónimo no protege más que la ausencia de trazo.
+    if (inspeccion.firma && !inspeccion.firmante?.documento?.trim()) {
+      throw errorCampo('firmante', 'Anota quién firma, con su documento.')
     }
 
     const vehiculo = db.vehiculos.find((v) => v.id === orden.vehiculoId)

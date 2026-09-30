@@ -520,6 +520,30 @@ export const definiciones: DefinicionParametro[] = [
 
   // ── Entrega y garantía ─────────────────────────────────────────────────────
   {
+    clave: 'entrega.verificarReceptor',
+    etiqueta: 'Comprobar a quién se entrega el vehículo',
+    descripcion: 'Nombre y documento de quien se lo lleva, antes de darlo por entregado.',
+    escenario:
+      'El coche sale del taller y, sin esto, no queda constancia de en manos de quién. Quien recoge no siempre es quien lo dejó: lo trajo el hijo y lo recoge la madre, o al revés. Es el mismo control de la entrada, en la puerta de salida.',
+    alcance: 'vertical',
+    grupo: 'Entrega',
+    tipo: 'opcion',
+    opciones: [
+      {
+        valor: 'siempre',
+        etiqueta: 'En cada entrega',
+        descripcion: 'Aunque recoja el mismo que lo dejó.',
+      },
+      {
+        valor: 'distinto',
+        etiqueta: 'Solo si recoge otra persona',
+        descripcion: 'A quien lo dejó se le reconoce sin preguntar.',
+      },
+      { valor: 'no', etiqueta: 'No comprobar', descripcion: 'Solo la fecha, como antes.' },
+    ],
+    porDefecto: 'siempre',
+  },
+  {
     clave: 'entrega.garantiaDias',
     etiqueta: 'Garantía de la mano de obra',
     unidad: 'días',
