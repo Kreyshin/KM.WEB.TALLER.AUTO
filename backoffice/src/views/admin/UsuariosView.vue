@@ -5,7 +5,6 @@ import KmCheckbox from '@/components/ui/KmCheckbox.vue'
 import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
-import KmSwitch from '@/components/ui/KmSwitch.vue'
 import { etiquetasRol } from '@/components/layout/navegacion'
 import { usuariosService } from '@/services/usuarios.service'
 import type { Especialidad, Rol, Usuario } from '@/types'
@@ -78,6 +77,7 @@ function alternar(lista: Especialidad[] | undefined, e: Especialidad): Especiali
   <KmCatalogo
     titulo="Usuarios y roles"
     subtitulo="Quién entra al sistema y qué parte del taller gestiona."
+    descripcion-estado="Una cuenta inactiva no puede iniciar sesión."
     entidad="usuario"
     :servicio="usuariosService"
     :columnas="columnas"
@@ -132,12 +132,6 @@ function alternar(lista: Especialidad[] | undefined, e: Especialidad): Especiali
           </KmCheckbox>
         </div>
       </KmField>
-
-      <KmSwitch
-        v-model="borrador.activo"
-        etiqueta="Cuenta activa"
-        descripcion="Una cuenta inactiva no puede iniciar sesión."
-      />
     </template>
   </KmCatalogo>
 </template>

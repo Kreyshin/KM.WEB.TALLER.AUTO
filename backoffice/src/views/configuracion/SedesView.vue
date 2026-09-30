@@ -2,7 +2,6 @@
 import KmCatalogo from '@/components/ui/KmCatalogo.vue'
 import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
-import KmSwitch from '@/components/ui/KmSwitch.vue'
 import { localesService } from '@/services/locales.service'
 import type { Local, NuevoLocal } from '@/types'
 import type { ColumnaTabla } from '@/types/ui'
@@ -93,7 +92,6 @@ function validar(l: NuevoLocal): Record<string, string> {
           :invalido="invalido"
         />
       </KmField>
-      <KmSwitch v-model="borrador.activo" etiqueta="Sede activa" />
     </template>
   </KmCatalogo>
 </template>

@@ -64,6 +64,7 @@ function validar(b: NuevaBahia): Record<string, string> {
   <KmCatalogo
     titulo="Bahías"
     subtitulo="Los puestos de trabajo de esta sede: la capacidad real del taller."
+    descripcion-estado="Una bahía inactiva sale del tablero pero conserva su histórico."
     entidad="bahía"
     femenino
     :servicio="bahiasService"
@@ -148,12 +149,6 @@ function validar(b: NuevaBahia): Record<string, string> {
           :invalido="invalido"
         />
       </KmField>
-
-      <KmSwitch
-        v-model="borrador.activo"
-        etiqueta="Bahía activa"
-        descripcion="Una bahía inactiva sale del tablero pero conserva su histórico."
-      />
     </template>
   </KmCatalogo>
 </template>

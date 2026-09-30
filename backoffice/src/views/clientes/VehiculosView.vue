@@ -6,7 +6,6 @@ import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
-import KmSwitch from '@/components/ui/KmSwitch.vue'
 import { clientesService } from '@/services/clientes.service'
 import { vehiculosService } from '@/services/vehiculos.service'
 import type { Combustible, Transmision, VehiculoResuelto } from '@/types'
@@ -198,8 +197,6 @@ function validar(v: Omit<VehiculoResuelto, 'id'>): Record<string, string> {
           <KmNumero :id="id" v-model="borrador.kilometraje" :min="0" :step="100" />
         </KmField>
       </div>
-
-      <KmSwitch v-model="borrador.activo" etiqueta="Vehículo activo" />
     </template>
   </KmCatalogo>
 </template>
