@@ -3,12 +3,15 @@ import type {
   OrdenResuelta,
   OrdenTrabajo,
   PrioridadOrden,
+  RelacionTenencia,
   VehiculoResuelto,
 } from '@/types'
 import { clientesService } from './clientes.service'
 import { db, latencia, persistir } from './mock/db'
 import { errorCampo } from './mock/reglas'
 import { ordenesService } from './ordenes.service'
+import { parametrosService } from './parametros.service'
+import { tenenciaService } from './tenencia.service'
 import { vehiculosService } from './vehiculos.service'
 
 /**
@@ -50,6 +53,19 @@ export interface DatosRecepcion {
   kilometraje?: number
   /** Cita de la que viene, si venía citado. */
   citaId?: string
+  /** Quién atiende el mostrador: firma la comprobación de tenencia. */
+  usuarioId?: string
+  /**
+   * Con qué derecho deja el vehículo quien lo deja. Lo exige
+   * `recepcion.verificarTenencia`; sin él la orden no se abre.
+   */
+  tenencia?: {
+    relacion: RelacionTenencia
+    respaldo?: string
+    nota?: string
+    /** Declararlo para que los ingresos siguientes lo reconozcan. */
+    recordar?: boolean
+  }
 }
 
 export const recepcionService = {
@@ -145,6 +161,43 @@ export const recepcionService = {
       await vehiculosService.registrarKilometraje(vehiculoId, datos.kilometraje)
     }
 
+    /*
+     * La comprobación de tenencia, según mande la cadena. Se hace aquí y no en
+     * la pantalla porque una regla que solo vive en un formulario se la salta
+     * la siguiente pantalla que abra una orden.
+     */
+    const politica = parametrosService.valor<string>('recepcion.verificarTenencia')
+    let tenencia
+    if (politica !== 'no') {
+      const conocida = await tenenciaService.relacionConocida(clienteId, vehiculoId)
+      const relacion = datos.tenencia?.relacion ?? conocida ?? undefined
+
+      if (!relacion) {
+        throw errorCampo('relacion', 'Falta comprobar con qué derecho trae el vehículo.')
+      }
+      if (politica === 'siempre' && !datos.tenencia) {
+        throw errorCampo('relacion', 'Confirma quién trae el vehículo antes de abrir la orden.')
+      }
+      if (
+        relacion !== 'titular' &&
+        parametrosService.valor<boolean>('recepcion.respaldoTerceros')
+      ) {
+        if (!datos.tenencia?.respaldo?.trim()) {
+          throw errorCampo('respaldo', 'Anota qué documento respalda que puede dejarlo.')
+        }
+      }
+
+      tenencia = await tenenciaService.verificar({
+        clienteId,
+        vehiculoId,
+        relacion,
+        respaldo: datos.tenencia?.respaldo,
+        nota: datos.tenencia?.nota,
+        verificadoPor: datos.usuarioId ?? '',
+        recordar: datos.tenencia?.recordar,
+      })
+    }
+
     const orden = await ordenesService.crear({
       localId: datos.localId,
       vehiculoId,
@@ -153,6 +206,7 @@ export const recepcionService = {
       fase: 'recepcion',
       prioridad: datos.prioridad ?? 'normal',
       kilometraje: datos.kilometraje ?? 0,
+      tenencia,
     })
 
     // La cita deja de esperar: el coche ya está aquí.

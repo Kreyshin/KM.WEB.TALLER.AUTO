@@ -166,6 +166,63 @@ export interface VehiculoResuelto extends Vehiculo {
   cliente?: Cliente
 }
 
+// ── Tenencia: quién trae el vehículo y con qué derecho ───────────────────────
+
+/**
+ * Qué relación tiene con el vehículo quien lo deja en el taller.
+ *
+ * `Vehiculo.clienteId` dice de quién es el coche. Esto dice quién lo trae, que
+ * no siempre es el mismo: el hijo del titular, el chofer de una flota, un
+ * comprador que aún no transfirió. Colapsarlos deja al taller afirmando una
+ * propiedad que nadie comprobó.
+ */
+export type RelacionTenencia = 'titular' | 'familiar' | 'empresa' | 'autorizado' | 'otro'
+
+/**
+ * El vínculo entre una persona y un vehículo. **Recuerda**: se declara una vez
+ * y el taller lo reconoce en los ingresos siguientes.
+ *
+ * No sustituye a la verificación: un vínculo viejo puede haber caducado justo
+ * cuando importa, y por eso `vigenteHasta` existe.
+ */
+export interface VinculoTenencia {
+  id: string
+  clienteId: string
+  vehiculoId: string
+  relacion: RelacionTenencia
+  /** Carta poder, contrato de compraventa, tarjeta de propiedad. */
+  documentoRespaldo?: string
+  /** `YYYY-MM-DD`. Una autorización puede tener fecha de caducidad. */
+  vigenteHasta?: string
+  notas?: string
+  /** ISO. */
+  declaradoEl: string
+  declaradoPor: string
+  activo: boolean
+}
+
+export type NuevoVinculoTenencia = Omit<VinculoTenencia, 'id'>
+
+/**
+ * La comprobación de ese día, guardada en la orden. **No recuerda**: cada
+ * ingreso vuelve a preguntar, aunque el vínculo ya existiera.
+ *
+ * Es lo que cubre al taller: no basta con que el dato estuviera en el sistema,
+ * hace falta que alguien lo mirara, y que conste quién y cuándo.
+ */
+export interface VerificacionTenencia {
+  relacion: RelacionTenencia
+  /** Vínculo que se confirmó, si lo había. Sin él, se declaró en el momento. */
+  vinculoId?: string
+  /** Qué se pidió ver: carta poder, DNI del titular, contrato. */
+  respaldo?: string
+  nota?: string
+  /** Quién lo comprobó. */
+  verificadoPor: string
+  /** ISO. */
+  verificadoEl: string
+}
+
 // ── Órdenes de trabajo ───────────────────────────────────────────────────────
 
 /**
@@ -232,6 +289,11 @@ export interface OrdenTrabajo {
   aprobada?: boolean
   /** ISO. */
   aprobadaEl?: string
+  /**
+   * Quién trajo el vehículo y con qué derecho, comprobado en ESTE ingreso.
+   * Lo exige `recepcion.verificarTenencia`.
+   */
+  tenencia?: VerificacionTenencia
   /** Hoja de ingreso: la vuelta al vehículo, firmada por el cliente. */
   inspeccion?: Inspeccion
   items: ItemOrden[]

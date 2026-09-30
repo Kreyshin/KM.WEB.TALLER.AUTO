@@ -24,6 +24,7 @@ import type {
   Usuario,
   ValoresConfiguracion,
   Vehiculo,
+  VinculoTenencia,
 } from '@/types'
 import { simularRed } from './red'
 
@@ -31,7 +32,7 @@ import { simularRed } from './red'
  * La clave lleva versión: al cambiar la forma de los datos se sube el número y
  * los navegadores con la semilla anterior parten de cero en vez de romperse.
  */
-const CLAVE = 'km.taller.mock.v1'
+const CLAVE = 'km.taller.mock.v2'
 
 export interface Esquema {
   empresa: Empresa
@@ -41,6 +42,7 @@ export interface Esquema {
   bahias: Bahia[]
   clientes: Cliente[]
   vehiculos: Vehiculo[]
+  vinculos: VinculoTenencia[]
   ordenes: OrdenTrabajo[]
   servicios: Servicio[]
   planes: PlanMantenimiento[]
@@ -1069,6 +1071,42 @@ function semilla(): Esquema {
         motivo: 'Batería devuelta por garantía',
         usuarioId: 'u6',
         fecha: hace(60 * 12),
+      },
+    ],
+
+    vinculos: [
+      // El titular de su propio coche: el caso corriente, que también se verifica.
+      {
+        id: 'vt1',
+        clienteId: 'c1',
+        vehiculoId: 'v1',
+        relacion: 'titular',
+        declaradoEl: hace(60 * 24 * 90),
+        declaradoPor: 'u2',
+        activo: true,
+      },
+      // Flota: quien trae la unidad no es la empresa, es quien conduce.
+      {
+        id: 'vt2',
+        clienteId: 'c2',
+        vehiculoId: 'v7',
+        relacion: 'empresa',
+        documentoRespaldo: 'Carta de la empresa, vigente todo el año',
+        vigenteHasta: dia(300),
+        declaradoEl: hace(60 * 24 * 40),
+        declaradoPor: 'u2',
+        activo: true,
+      },
+      // El coche es de Lucía; lo trae su hijo. Sin esto, el sistema mentiría.
+      {
+        id: 'vt3',
+        clienteId: 'c4',
+        vehiculoId: 'v3',
+        relacion: 'familiar',
+        notas: 'Hijo de la titular. Ella autoriza por teléfono.',
+        declaradoEl: hace(60 * 24 * 10),
+        declaradoPor: 'u2',
+        activo: true,
       },
     ],
 

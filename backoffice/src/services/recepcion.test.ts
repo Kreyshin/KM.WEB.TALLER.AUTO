@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { normalizarPlaca, recepcionService } from './recepcion.service'
+import { parametrosService } from './parametros.service'
+import { tenenciaService } from './tenencia.service'
 import { db, reiniciarMock } from './mock/db'
 
 /**
@@ -51,6 +53,8 @@ describe('recibir', () => {
       vehiculoNuevo: { marca: 'Nissan', modelo: 'March', anio: 2018 },
       motivo: 'Chirría al girar',
       kilometraje: 90000,
+      usuarioId: 'u2',
+      tenencia: { relacion: 'titular' },
     })
 
     const vehiculo = db.vehiculos.find((v) => v.id === orden.vehiculoId)
@@ -84,6 +88,8 @@ describe('recibir', () => {
       clienteId: cita.clienteId,
       motivo: cita.motivo,
       citaId: cita.id,
+      usuarioId: 'u2',
+      tenencia: { relacion: 'titular' },
     })
 
     expect(db.citas.find((c) => c.id === cita.id)?.estado).toBe('llego')
@@ -101,7 +107,122 @@ describe('recibir', () => {
       clienteId: vehiculo.clienteId,
       motivo: 'Revisión',
       kilometraje: antes - 5000,
+      usuarioId: 'u2',
+      tenencia: { relacion: 'titular' },
     })
     expect(db.vehiculos.find((v) => v.id === vehiculo.id)?.kilometraje).toBe(antes)
+  })
+})
+
+/**
+ * El control que cubre al taller: quién trae el vehículo y con qué derecho.
+ *
+ * Lo que se prueba es que la regla vive en el servicio y no en el formulario.
+ * Una regla que solo existe en una pantalla se la salta la siguiente pantalla
+ * que abra una orden.
+ */
+describe('tenencia', () => {
+  const conocido = () => db.vehiculos.find((v) => v.placa === 'AEQ-731')!
+
+  it('no abre la orden si nadie comprobó quién trae el vehículo', async () => {
+    const v = conocido()
+    await expect(
+      recepcionService.recibir({
+        localId: LOCAL,
+        placa: v.placa,
+        vehiculoId: v.id,
+        clienteId: v.clienteId,
+        motivo: 'Revisión',
+      }),
+    ).rejects.toMatchObject({ campos: { relacion: expect.any(String) } })
+  })
+
+  it('deja constancia de quién lo comprobó y cuándo', async () => {
+    const v = conocido()
+    const orden = await recepcionService.recibir({
+      localId: LOCAL,
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: v.clienteId,
+      motivo: 'Revisión',
+      usuarioId: 'u2',
+      tenencia: { relacion: 'titular' },
+    })
+
+    expect(orden.tenencia?.relacion).toBe('titular')
+    expect(orden.tenencia?.verificadoPor).toBe('u2')
+    expect(orden.tenencia?.verificadoEl).toBeTruthy()
+  })
+
+  it('con «solo terceros» reconoce al titular sin preguntar', async () => {
+    await parametrosService.guardar({ 'recepcion.verificarTenencia': 'terceros' })
+    const v = conocido()
+    const orden = await recepcionService.recibir({
+      localId: LOCAL,
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: v.clienteId,
+      motivo: 'Revisión',
+      usuarioId: 'u2',
+    })
+    expect(orden.tenencia?.relacion).toBe('titular')
+  })
+
+  it('exige respaldo al tercero cuando la cadena lo pide', async () => {
+    await parametrosService.guardar({ 'recepcion.respaldoTerceros': true })
+    const v = conocido()
+    const otro = db.clientes.find((c) => c.id !== v.clienteId)!
+
+    const sinPapel = recepcionService.recibir({
+      localId: LOCAL,
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: otro.id,
+      motivo: 'Revisión',
+      usuarioId: 'u2',
+      tenencia: { relacion: 'autorizado' },
+    })
+    await expect(sinPapel).rejects.toMatchObject({ campos: { respaldo: expect.any(String) } })
+
+    const orden = await recepcionService.recibir({
+      localId: LOCAL,
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: otro.id,
+      motivo: 'Revisión',
+      usuarioId: 'u2',
+      tenencia: { relacion: 'autorizado', respaldo: 'Carta poder legalizada' },
+    })
+    expect(orden.tenencia?.respaldo).toBe('Carta poder legalizada')
+  })
+
+  it('recordar declara el vínculo; el ingreso siguiente ya lo reconoce', async () => {
+    const v = conocido()
+    const otro = db.clientes.find((c) => c.id !== v.clienteId)!
+
+    await recepcionService.recibir({
+      localId: LOCAL,
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: otro.id,
+      motivo: 'Revisión',
+      usuarioId: 'u2',
+      tenencia: { relacion: 'familiar', nota: 'Hermano del titular', recordar: true },
+    })
+
+    expect(await tenenciaService.relacionConocida(otro.id, v.id)).toBe('familiar')
+  })
+
+  it('«no comprobar» abre la orden sin tenencia: el riesgo es del taller', async () => {
+    await parametrosService.guardar({ 'recepcion.verificarTenencia': 'no' })
+    const v = conocido()
+    const orden = await recepcionService.recibir({
+      localId: LOCAL,
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: v.clienteId,
+      motivo: 'Revisión',
+    })
+    expect(orden.tenencia).toBeUndefined()
   })
 })

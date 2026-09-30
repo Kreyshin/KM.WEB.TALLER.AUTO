@@ -7,14 +7,20 @@ import KmField from '@/components/ui/KmField.vue'
 import KmInput from '@/components/ui/KmInput.vue'
 import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
+import KmModal from '@/components/ui/KmModal.vue'
+import ControlTenencia from './ControlTenencia.vue'
 import { useCarga } from '@/composables/useCarga'
+import { parametrosService } from '@/services/parametros.service'
 import { normalizarPlaca, recepcionService } from '@/services/recepcion.service'
+import { tenenciaService } from '@/services/tenencia.service'
+import { useAuthStore } from '@/stores/auth.store'
 import { useUiStore } from '@/stores/ui.store'
 import type {
   ApiError,
   CitaResuelta,
   OrdenResuelta,
   PrioridadOrden,
+  RelacionTenencia,
   VehiculoResuelto,
 } from '@/types'
 import { desdeHace, formatearKm } from '@/utils/formato'
@@ -33,6 +39,7 @@ const props = defineProps<{ localId: string }>()
 const emit = defineEmits<{ recibida: [ordenId: string] }>()
 
 const ui = useUiStore()
+const auth = useAuthStore()
 
 const esperadas = ref<CitaResuelta[]>([])
 const enPiso = ref<OrdenResuelta[]>([])
@@ -51,6 +58,27 @@ const kilometraje = ref(0)
 const prioridad = ref<PrioridadOrden>('normal')
 const nuevoVehiculo = ref({ marca: '', modelo: '', anio: new Date().getFullYear(), color: '' })
 const nuevoCliente = ref({ nombre: '', documento: '', telefono: '' })
+
+// ── Con qué derecho deja el vehículo ─────────────────────────────────────────
+const politica = computed(() => parametrosService.valor<string>('recepcion.verificarTenencia'))
+const exigeRespaldo = computed(() => parametrosService.valor<boolean>('recepcion.respaldoTerceros'))
+const controla = computed(() => politica.value !== 'no')
+
+function tenenciaVacia() {
+  return { relacion: '' as RelacionTenencia | '', respaldo: '', nota: '', recordar: false }
+}
+
+const tenencia = ref(tenenciaVacia())
+const conocida = ref<RelacionTenencia | null>(null)
+
+/** Lo que el taller ya sabe se precarga; confirmarlo sigue siendo obligatorio. */
+async function precargarTenencia(clienteId?: string, vehiculoId?: string) {
+  tenencia.value = tenenciaVacia()
+  conocida.value =
+    clienteId && vehiculoId ? await tenenciaService.relacionConocida(clienteId, vehiculoId) : null
+  // Placa nueva: quien la da de alta es, por definición, a quien se le pone.
+  tenencia.value.relacion = conocida.value ?? (vehiculoId ? '' : 'titular')
+}
 
 const placaCompleta = computed(() => /^[A-Z][A-Z0-9]{2}-[0-9][A-Z0-9]{2}$/.test(placa.value))
 /** Se ha buscado esta placa exacta y no aparece: toca darla de alta. */
@@ -89,6 +117,7 @@ async function buscar() {
     conocido.value = await recepcionService.buscarPlaca(placa.value)
     buscada.value = placa.value
     if (conocido.value) kilometraje.value = conocido.value.kilometraje
+    await precargarTenencia(conocido.value?.clienteId, conocido.value?.id)
   } finally {
     buscando.value = false
   }
@@ -108,6 +137,8 @@ async function recibirSinCita() {
       motivo: motivo.value,
       prioridad: prioridad.value,
       kilometraje: kilometraje.value,
+      usuarioId: auth.usuario?.id,
+      tenencia: controla.value ? tenenciaConfirmada(tenencia.value) : undefined,
     })
     emit('recibida', orden.id)
   } catch (e) {
@@ -119,7 +150,32 @@ async function recibirSinCita() {
   }
 }
 
-async function recibirCita(cita: CitaResuelta) {
+/** Sin relación elegida no se manda nada: que el servicio sea quien se niegue. */
+function tenenciaConfirmada(t: ReturnType<typeof tenenciaVacia>) {
+  if (!t.relacion) return undefined
+  return { relacion: t.relacion, respaldo: t.respaldo, nota: t.nota, recordar: t.recordar }
+}
+
+/*
+ * El citado también se comprueba. Antes era un botón de un clic; ahora ese
+ * clic abre la confirmación, porque venir citado no dice nada de con qué
+ * derecho se deja el coche.
+ */
+const citaEnCurso = ref<CitaResuelta | null>(null)
+const tenenciaCita = ref(tenenciaVacia())
+const conocidaCita = ref<RelacionTenencia | null>(null)
+const erroresCita = ref<Record<string, string>>({})
+
+async function pedirRecibirCita(cita: CitaResuelta) {
+  erroresCita.value = {}
+  tenenciaCita.value = tenenciaVacia()
+  conocidaCita.value = await tenenciaService.relacionConocida(cita.clienteId, cita.vehiculoId)
+  tenenciaCita.value.relacion = conocidaCita.value ?? ''
+  if (!controla.value) return abrirDesdeCita(cita)
+  citaEnCurso.value = cita
+}
+
+async function abrirDesdeCita(cita: CitaResuelta) {
   abriendo.value = true
   try {
     const orden = await recepcionService.recibir({
@@ -130,10 +186,15 @@ async function recibirCita(cita: CitaResuelta) {
       motivo: cita.motivo,
       kilometraje: cita.vehiculo?.kilometraje ?? 0,
       citaId: cita.id,
+      usuarioId: auth.usuario?.id,
+      tenencia: controla.value ? tenenciaConfirmada(tenenciaCita.value) : undefined,
     })
+    citaEnCurso.value = null
     emit('recibida', orden.id)
   } catch (e) {
-    ui.error((e as ApiError).mensaje ?? 'No se pudo abrir la orden.')
+    const err = e as ApiError
+    erroresCita.value = err.campos ?? {}
+    ui.error(err.mensaje ?? 'No se pudo abrir la orden.')
   } finally {
     abriendo.value = false
   }
@@ -248,6 +309,16 @@ function retraso(hora: string): number {
               />
             </KmField>
           </div>
+          <ControlTenencia
+            v-if="controla"
+            v-model="tenencia"
+            :titular="conocido?.cliente?.nombre"
+            :conocida="conocida"
+            :exige-respaldo="exigeRespaldo"
+            :error="errores.relacion"
+            :error-respaldo="errores.respaldo"
+          />
+
           <div class="flex justify-end">
             <KmButton
               type="button"
@@ -287,7 +358,7 @@ function retraso(hora: string): number {
           <KmBadge v-if="retraso(c.hora) > 15" tono="ambar">
             ⏱ {{ retraso(c.hora) }} min tarde
           </KmBadge>
-          <KmButton tamano="sm" :disabled="abriendo" @click="recibirCita(c)">Recibir</KmButton>
+          <KmButton tamano="sm" :disabled="abriendo" @click="pedirRecibirCita(c)">Recibir</KmButton>
         </li>
       </ul>
     </KmCard>
@@ -328,4 +399,39 @@ function retraso(hora: string): number {
       </ul>
     </KmCard>
   </div>
+
+  <!-- Venir citado no dice con qué derecho se deja el coche: también se comprueba. -->
+  <KmModal
+    :model-value="!!citaEnCurso"
+    titulo="Recibir vehículo"
+    ancho="md"
+    @update:model-value="citaEnCurso = null"
+  >
+    <div v-if="citaEnCurso" class="flex flex-col gap-4">
+      <p class="text-sm text-tenue">
+        <span class="ts-placa text-tinta">{{ citaEnCurso.vehiculo?.placa }}</span>
+        · {{ citaEnCurso.cliente?.nombre }} · {{ citaEnCurso.motivo }}
+      </p>
+
+      <ControlTenencia
+        v-model="tenenciaCita"
+        :titular="citaEnCurso.vehiculo ? citaEnCurso.cliente?.nombre : undefined"
+        :conocida="conocidaCita"
+        :exige-respaldo="exigeRespaldo"
+        :error="erroresCita.relacion"
+        :error-respaldo="erroresCita.respaldo"
+      />
+    </div>
+
+    <template #footer>
+      <KmButton variante="fantasma" @click="citaEnCurso = null">Cancelar</KmButton>
+      <KmButton
+        :cargando="abriendo"
+        :disabled="abriendo"
+        @click="citaEnCurso && abrirDesdeCita(citaEnCurso)"
+      >
+        Abrir orden
+      </KmButton>
+    </template>
+  </KmModal>
 </template>

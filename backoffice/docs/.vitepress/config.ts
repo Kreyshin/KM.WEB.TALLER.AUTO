@@ -80,6 +80,7 @@ export default defineConfig({
           text: 'Procesos de principio a fin',
           items: [
             { text: 'Un vehículo que entra', link: '/procesos/ingreso' },
+            { text: 'Quién trae el vehículo', link: '/procesos/tenencia' },
             { text: 'Un presupuesto que se aprueba', link: '/procesos/presupuesto' },
             { text: 'Un repuesto que no llega', link: '/procesos/repuesto' },
             { text: 'Una entrega', link: '/procesos/entrega' },

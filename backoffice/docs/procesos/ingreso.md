@@ -7,7 +7,13 @@ De la puerta a la bahía, paso a paso.
 Puede venir con cita o sin ella. Si tenía cita, se marca **Llegó** desde
 [Citas](/modulos/citas); el hueco queda justificado.
 
-## 2. Se abre la orden
+## 2. Se comprueba quién lo trae
+
+Antes de abrir nada: [con qué derecho deja el vehículo](/procesos/tenencia)
+quien lo deja. Al titular se le reconoce y se confirma en un clic; a un tercero
+se le pregunta. Es lo que separa «se lo llevó su hijo» de un problema.
+
+## 3. Se abre la orden
 
 Desde [Órdenes](/modulos/ordenes) → **Abrir orden**:
 
@@ -28,14 +34,14 @@ eso»_.
 La orden nace en <span class="estado estado-neutro">recepción</span>, sin
 bahía y sin técnico.
 
-## 3. Se comprueba qué le toca
+## 4. Se comprueba qué le toca
 
 Con el kilometraje recién anotado, [Catálogo → Planes](/modulos/catalogo) dice
 si al vehículo le corresponde un mantenimiento, con el precio ya calculado. Es
 el momento de ofrecerlo: después el coche ya está abierto y el cliente ya se
 fue.
 
-## 4. Se asigna
+## 5. Se asigna
 
 En [Carga de técnicos](/modulos/tecnicos) se mira quién tiene margen **y la
 especialidad** del trabajo. Desde la ficha de la orden se elige bahía y
@@ -46,7 +52,7 @@ El sistema impide dos cosas:
 - asignar una bahía que ya tiene otra orden dentro;
 - asignar una bahía que no está operativa.
 
-## 5. Aparece en el tablero
+## 6. Aparece en el tablero
 
 En cuanto tiene bahía, el vehículo ocupa su celda en el
 [tablero](/modulos/tablero) y el taller entero lo ve. A partir de aquí el

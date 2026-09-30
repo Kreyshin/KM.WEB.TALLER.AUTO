@@ -38,6 +38,50 @@ export const definiciones: DefinicionParametro[] = [
     porDefecto: true,
   },
   {
+    clave: 'recepcion.verificarTenencia',
+    etiqueta: 'Comprobar quién trae el vehículo',
+    descripcion: 'Con qué derecho deja el coche quien lo deja, antes de abrir la orden.',
+    escenario:
+      'El taller responde de un bien que no es suyo. Si el coche no está a nombre de quien lo trae y nadie preguntó, no hay nada que enseñar el día que aparezca el titular. Comprobarlo siempre cuesta un clic con el cliente de siempre y evita el caso que duele.',
+    alcance: 'vertical',
+    grupo: 'Recepción',
+    tipo: 'opcion',
+    opciones: [
+      {
+        valor: 'siempre',
+        etiqueta: 'En cada ingreso',
+        descripcion: 'También al titular: queda constancia de que ese día se miró.',
+      },
+      {
+        valor: 'terceros',
+        etiqueta: 'Solo si no es el titular',
+        descripcion: 'Al titular se le reconoce sin preguntar.',
+      },
+      {
+        valor: 'no',
+        etiqueta: 'No comprobar',
+        descripcion: 'Sin control de tenencia. El riesgo es del taller.',
+      },
+    ],
+    erp: {
+      modulo: 'Custodia documental',
+      que: 'Guarda la carta poder escaneada junto a la orden y avisa antes de que caduque.',
+    },
+    porDefecto: 'siempre',
+  },
+  {
+    clave: 'recepcion.respaldoTerceros',
+    etiqueta: 'Exigir documento de respaldo a un tercero',
+    descripcion: 'Sin documento anotado, la orden no se abre.',
+    escenario:
+      'Activado, «me lo prestó un amigo» deja de ser suficiente: hace falta anotar qué se vio. Es el freno que convierte el control en control, y también el que hace discutir en el mostrador.',
+    alcance: 'vertical',
+    grupo: 'Recepción',
+    tipo: 'booleano',
+    depende: { clave: 'recepcion.verificarTenencia', distintoDe: 'no' },
+    porDefecto: false,
+  },
+  {
     clave: 'recepcion.exigir',
     etiqueta: 'Qué se anota al recibir',
     descripcion: 'Lo que la hoja de ingreso no deja cerrar si falta.',

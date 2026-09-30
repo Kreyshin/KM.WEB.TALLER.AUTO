@@ -22,12 +22,12 @@ flujo de trabajo real —y discutirlo— antes de escribir una sola tabla.
 
 ## Con ruta y permisos, pendiente de pantalla
 
-| Módulo                                 | Estado |
-| -------------------------------------- | ------ |
-| Producción del taller (reportes)       | 🚧     |
-| Facturación SUNAT                      | 🚧     |
-| Bitácora                               | 🚧     |
-| Motivos y configuración de la vertical | 🚧     |
+| Módulo                           | Estado |
+| -------------------------------- | ------ |
+| Producción del taller (reportes) | 🚧     |
+| Facturación SUNAT                | 🚧     |
+| Bitácora                         | 🚧     |
+| Motivos                          | 🚧     |
 
 Estos módulos ya tienen su sitio en el menú y su regla de acceso por rol; lo
 que falta es la pantalla.
