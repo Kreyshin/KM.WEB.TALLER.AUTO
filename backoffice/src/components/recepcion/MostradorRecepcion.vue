@@ -11,7 +11,7 @@ import KmModal from '@/components/ui/KmModal.vue'
 import ControlTenencia from './ControlTenencia.vue'
 import { useCarga } from '@/composables/useCarga'
 import { parametrosService } from '@/services/parametros.service'
-import { normalizarPlaca, recepcionService } from '@/services/recepcion.service'
+import { recepcionService } from '@/services/recepcion.service'
 import { tenenciaService } from '@/services/tenencia.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUiStore } from '@/stores/ui.store'
@@ -24,6 +24,7 @@ import type {
   VehiculoResuelto,
 } from '@/types'
 import { desdeHace, formatearKm } from '@/utils/formato'
+import { esPlacaValida, normalizarPlaca } from '@/utils/placa'
 
 /**
  * El mostrador: lo que ve el asesor antes de tocar el coche.
@@ -80,7 +81,17 @@ async function precargarTenencia(clienteId?: string, vehiculoId?: string) {
   tenencia.value.relacion = conocida.value ?? (vehiculoId ? '' : 'titular')
 }
 
-const placaCompleta = computed(() => /^[A-Z][A-Z0-9]{2}-[0-9][A-Z0-9]{2}$/.test(placa.value))
+const placaCompleta = computed(() => esPlacaValida(placa.value))
+
+/**
+ * Un botón apagado sin explicación no dice qué falta: quien escribe una placa
+ * que el sistema no acepta se queda mirando, y lo que concluye es que la
+ * pantalla está rota.
+ */
+const avisoPlaca = computed(() => {
+  if (placa.value.length < 6 || placaCompleta.value) return ''
+  return 'Formatos válidos: ABC-123 y A12-345 (autos y camiones), AB-1234 (motos y mototaxis).'
+})
 /** Se ha buscado esta placa exacta y no aparece: toca darla de alta. */
 const esDesconocido = computed(() => buscada.value === placa.value && !conocido.value)
 
@@ -235,6 +246,8 @@ function retraso(hora: string): number {
             Buscar placa
           </KmButton>
         </div>
+
+        <p v-if="avisoPlaca" class="-mt-1 text-xs text-ambar">{{ avisoPlaca }}</p>
 
         <!-- Lo que el taller sabe de esa placa. -->
         <div

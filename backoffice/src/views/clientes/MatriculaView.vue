@@ -13,7 +13,7 @@ import KmNumero from '@/components/ui/KmNumero.vue'
 import KmSelect from '@/components/ui/KmSelect.vue'
 import { citasService } from '@/services/citas.service'
 import { parametrosService } from '@/services/parametros.service'
-import { normalizarPlaca, recepcionService } from '@/services/recepcion.service'
+import { recepcionService } from '@/services/recepcion.service'
 import { tenenciaService } from '@/services/tenencia.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLocalStore } from '@/stores/local.store'
@@ -27,6 +27,7 @@ import type {
 } from '@/types'
 import type { OpcionSelect } from '@/types/ui'
 import { formatearKm } from '@/utils/formato'
+import { esPlacaValida, normalizarPlaca } from '@/utils/placa'
 
 /**
  * Matrícula: el cliente y su vehículo, en una sola pantalla.
@@ -91,7 +92,17 @@ const tenencia = ref({
 })
 const conocida = ref<RelacionTenencia | null>(null)
 
-const placaCompleta = computed(() => /^[A-Z][A-Z0-9]{2}-[0-9][A-Z0-9]{2}$/.test(placa.value))
+const placaCompleta = computed(() => esPlacaValida(placa.value))
+
+/**
+ * Un botón apagado sin explicación no dice qué falta: quien escribe una placa
+ * que el sistema no acepta se queda mirando, y lo que concluye es que la
+ * pantalla está rota.
+ */
+const avisoPlaca = computed(() => {
+  if (placa.value.length < 6 || placaCompleta.value) return ''
+  return 'Formatos válidos: ABC-123 y A12-345 (autos y camiones), AB-1234 (motos y mototaxis).'
+})
 const esDesconocido = computed(() => buscada.value === placa.value && !conocido.value)
 /** Sin placa buscada no hay nada que decidir: las puertas no existen todavía. */
 const listo = computed(() => !!buscada.value)
@@ -239,6 +250,8 @@ async function soloRegistrar() {
             Buscar placa
           </KmButton>
         </div>
+
+        <p v-if="avisoPlaca" class="-mt-1 text-xs text-ambar">{{ avisoPlaca }}</p>
 
         <div
           v-if="conocido"

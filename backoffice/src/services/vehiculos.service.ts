@@ -2,6 +2,7 @@ import type { Consulta, NuevoVehiculo, Paginado, Vehiculo, VehiculoResuelto } fr
 import { db, latencia, persistir } from './mock/db'
 import { errorCampo, existeOtro } from './mock/reglas'
 import { crearRepositorio } from './mock/repositorio'
+import { esPlacaValida } from '@/utils/placa'
 
 const repo = crearRepositorio('vehiculos', {
   prefijo: 'v',
@@ -13,14 +14,15 @@ function resolver(v: Vehiculo): VehiculoResuelto {
   return { ...v, cliente: db.clientes.find((c) => c.id === v.clienteId) }
 }
 
-/** Placa peruana: tres letras, guion y tres caracteres alfanuméricos. */
-const FORMATO_PLACA = /^[A-Z][A-Z0-9]{2}-[0-9][A-Z0-9]{2}$/
-
 function validar(datos: Partial<NuevoVehiculo>, id?: string) {
   if (datos.placa !== undefined) {
     const placa = datos.placa.trim().toUpperCase()
-    if (!FORMATO_PLACA.test(placa)) {
-      throw errorCampo('placa', 'La placa no tiene el formato esperado.', 'Ej. ABC-123')
+    if (!esPlacaValida(placa)) {
+      throw errorCampo(
+        'placa',
+        'Esa placa no encaja con ningún formato peruano.',
+        'ABC-123, A12-345 o AB-1234 (menores)',
+      )
     }
     if (existeOtro(db.vehiculos, (v) => v.placa, placa, id)) {
       throw errorCampo('placa', 'Ya hay un vehículo con esa placa.', 'Placa duplicada')

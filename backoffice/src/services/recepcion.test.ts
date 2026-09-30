@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { normalizarPlaca, recepcionService } from './recepcion.service'
+import { recepcionService } from './recepcion.service'
 import { parametrosService } from './parametros.service'
 import { tenenciaService } from './tenencia.service'
 import { db, reiniciarMock } from './mock/db'
@@ -17,14 +17,6 @@ const LOCAL = 'l1'
 beforeEach(() => {
   localStorage.clear()
   reiniciarMock()
-})
-
-describe('normalizarPlaca', () => {
-  it('pone el guion y las mayúsculas por su cuenta', () => {
-    expect(normalizarPlaca('aeq731')).toBe('AEQ-731')
-    expect(normalizarPlaca('aeq-731')).toBe('AEQ-731')
-    expect(normalizarPlaca('ae')).toBe('AE')
-  })
 })
 
 describe('mostrador', () => {

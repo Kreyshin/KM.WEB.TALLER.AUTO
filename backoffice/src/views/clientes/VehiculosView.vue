@@ -11,6 +11,7 @@ import { vehiculosService } from '@/services/vehiculos.service'
 import type { Combustible, Transmision, VehiculoResuelto } from '@/types'
 import type { ColumnaTabla, OpcionSelect } from '@/types/ui'
 import { etiquetaCombustible, etiquetaTransmision, formatearKm } from '@/utils/formato'
+import { esPlacaValida } from '@/utils/placa'
 
 /**
  * El vehículo, no el cliente, es la unidad que atiende el taller: el historial
@@ -75,7 +76,7 @@ const nuevo = (): Omit<VehiculoResuelto, 'id'> => ({
 
 function validar(v: Omit<VehiculoResuelto, 'id'>): Record<string, string> {
   const errores: Record<string, string> = {}
-  if (!/^[A-Z][A-Z0-9]{2}-[0-9][A-Z0-9]{2}$/.test(v.placa.trim().toUpperCase())) {
+  if (!esPlacaValida(v.placa)) {
     errores.placa = 'Formato de placa esperado: ABC-123.'
   }
   if (!v.clienteId) errores.clienteId = 'Elige el propietario.'

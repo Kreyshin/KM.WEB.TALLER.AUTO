@@ -25,6 +25,21 @@ lo justo —documento, nombre, contacto, marca y modelo— sin salir de la pági
 
 Después, [con qué derecho deja el vehículo](/procesos/tenencia) quien lo deja.
 
+### Los formatos de placa que se aceptan
+
+El parque peruano no tiene un solo formato, y darlo por «tres letras y tres
+números» deja fuera a las motos, que en muchos talleres son media flota.
+
+| Tipo de vehículo                  | Formato                                               | Ejemplos             |
+| --------------------------------- | ----------------------------------------------------- | -------------------- |
+| Livianos y pesados                | Letra de zona registral + 2 alfanuméricos + 3 números | `ABC-123`, `A12-345` |
+| Menores (motos, mototaxis)        | 2 letras + 4 números                                  | `AB-1234`            |
+| Especiales (oficial, diplomático) | `E` + 2 letras + 3 números                            | `EUA-123`            |
+
+El guion y las mayúsculas se ponen solos mientras se teclea. `AB1234` es a la
+vez una moto (`AB-1234`) y un coche (`AB1-234`), así que si escribes el guion,
+**manda el tuyo**.
+
 ## Las tres puertas
 
 La pantalla no acaba en «guardar», sino en la pregunta que de verdad viene

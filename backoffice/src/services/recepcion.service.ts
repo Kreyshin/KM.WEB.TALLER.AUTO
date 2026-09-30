@@ -16,6 +16,7 @@ import { ordenesService } from './ordenes.service'
 import { parametrosService } from './parametros.service'
 import { tenenciaService } from './tenencia.service'
 import { vehiculosService } from './vehiculos.service'
+import { normalizarPlaca } from '@/utils/placa'
 
 /**
  * La recepción, tal y como ocurre en el mostrador.
@@ -32,16 +33,6 @@ import { vehiculosService } from './vehiculos.service'
 
 const hoyISO = () => new Date().toISOString().slice(0, 10)
 
-/** Placa peruana, tolerante a que se teclee sin guion ni mayúsculas. */
-export function normalizarPlaca(texto: string): string {
-  const limpio = texto
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '')
-    .slice(0, 6)
-  return limpio.length > 3 ? `${limpio.slice(0, 3)}-${limpio.slice(3)}` : limpio
-}
-
-/** Lo mínimo para que un cliente y su vehículo existan en el sistema. */
 export interface DatosMatricula {
   /** Placa ya normalizada. */
   placa: string
