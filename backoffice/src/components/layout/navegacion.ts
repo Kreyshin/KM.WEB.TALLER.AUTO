@@ -82,6 +82,11 @@ export const modulos: ModuloNav[] = [
       'M16 19a4 4 0 0 0-8 0M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM4 21h16a1 1 0 0 0 1-1V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v14a1 1 0 0 0 1 1z',
     secciones: [
       {
+        nombreRuta: 'matricula',
+        etiqueta: 'Matrícula',
+        descripcion: 'Dar de alta cliente y vehículo, y decidir qué pasa después',
+      },
+      {
         nombreRuta: 'vehiculos',
         etiqueta: 'Vehículos',
         descripcion: 'Ficha por placa, con su historial',

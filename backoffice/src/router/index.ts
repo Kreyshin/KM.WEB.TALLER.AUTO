@@ -75,6 +75,12 @@ const rutas: RouteRecordRaw[] = [
 
       // ── Clientes ────────────────────────────────────────────────────────
       {
+        path: 'matricula',
+        name: 'matricula',
+        component: () => import('@/views/clientes/MatriculaView.vue'),
+        meta: { titulo: 'Matrícula' },
+      },
+      {
         path: 'vehiculos',
         name: 'vehiculos',
         component: () => import('@/views/clientes/VehiculosView.vue'),

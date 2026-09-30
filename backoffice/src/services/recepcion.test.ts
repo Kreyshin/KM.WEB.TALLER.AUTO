@@ -226,3 +226,61 @@ describe('tenencia', () => {
     expect(orden.tenencia).toBeUndefined()
   })
 })
+
+/**
+ * Matricular y recibir son dos cosas distintas.
+ *
+ * Quien llama el martes para venir el jueves ya es cliente del taller aunque
+ * su coche no esté aquí. Confundirlas era lo que obligaba a abrir una orden
+ * para poder agendar una cita.
+ */
+describe('matricular', () => {
+  it('da de alta cliente y vehículo sin abrir ninguna orden', async () => {
+    const ordenesAntes = db.ordenes.length
+
+    const { clienteId, vehiculoId } = await recepcionService.matricular({
+      placa: 'XYZ-987',
+      clienteNuevo: { nombre: 'Rosa Quispe', documento: '44556677' },
+      vehiculoNuevo: { marca: 'Nissan', modelo: 'March', anio: 2018 },
+    })
+
+    expect(db.clientes.find((c) => c.id === clienteId)?.nombre).toBe('Rosa Quispe')
+    expect(db.vehiculos.find((v) => v.id === vehiculoId)?.placa).toBe('XYZ-987')
+    expect(db.ordenes.length).toBe(ordenesAntes)
+  })
+
+  it('un RUC entra como empresa, que es otro trato comercial', async () => {
+    const { clienteId } = await recepcionService.matricular({
+      placa: 'XYZ-988',
+      clienteNuevo: {
+        nombre: 'Servicios Lima S.A.C.',
+        documento: '20512345678',
+        tipoDocumento: 'ruc',
+      },
+      vehiculoNuevo: { marca: 'Hyundai', modelo: 'H1', anio: 2020 },
+    })
+    expect(db.clientes.find((c) => c.id === clienteId)?.esEmpresa).toBe(true)
+  })
+
+  it('exige el documento: sin él el taller no está cubierto', async () => {
+    await expect(
+      recepcionService.matricular({
+        placa: 'XYZ-989',
+        clienteNuevo: { nombre: 'Sin Papeles', documento: '' },
+        vehiculoNuevo: { marca: 'Kia', modelo: 'Rio', anio: 2019 },
+      }),
+    ).rejects.toMatchObject({ campos: { documento: expect.any(String) } })
+  })
+
+  it('reconoce al que ya existe en vez de duplicarlo', async () => {
+    const v = db.vehiculos.find((x) => x.placa === 'AEQ-731')!
+    const { clienteId, vehiculoId } = await recepcionService.matricular({
+      placa: v.placa,
+      vehiculoId: v.id,
+      clienteId: v.clienteId,
+    })
+    expect(vehiculoId).toBe(v.id)
+    expect(clienteId).toBe(v.clienteId)
+    expect(db.vehiculos.filter((x) => x.placa === 'AEQ-731')).toHaveLength(1)
+  })
+})

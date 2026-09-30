@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import KmBadge from '@/components/ui/KmBadge.vue'
 import KmButton from '@/components/ui/KmButton.vue'
 import KmCard from '@/components/ui/KmCard.vue'
@@ -247,6 +248,23 @@ async function marcar(cita: CitaResuelta, estado: EstadoCita) {
           placeholder="Busca por placa"
         />
       </KmField>
+
+      <!--
+        Esta lista solo tiene lo que ya existe, y quien llama por primera vez
+        no está en ella. Antes era un callejón sin salida: había que ir a dar
+        de alta el cliente, luego el vehículo, y volver.
+      -->
+      <p class="-mt-2 text-xs text-tenue">
+        ¿No está en la lista?
+        <RouterLink
+          :to="{ name: 'matricula' }"
+          class="font-semibold text-acero hover:underline"
+          @click="abierto = false"
+        >
+          Matricúlalo y agenda desde ahí
+        </RouterLink>
+        — cliente nuevo y cita, en una sola pantalla.
+      </p>
 
       <div class="grid gap-4 sm:grid-cols-3">
         <KmField v-slot="{ id }" label="Fecha">

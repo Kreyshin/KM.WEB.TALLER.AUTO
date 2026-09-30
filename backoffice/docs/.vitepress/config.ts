@@ -66,6 +66,7 @@ export default defineConfig({
             { text: 'Órdenes de trabajo', link: '/modulos/ordenes' },
             { text: 'Detenidas', link: '/modulos/detenidas' },
             { text: 'Carga de técnicos', link: '/modulos/tecnicos' },
+            { text: 'Matrícula', link: '/modulos/matricula' },
             { text: 'Clientes y vehículos', link: '/modulos/clientes' },
             { text: 'Citas', link: '/modulos/citas' },
             { text: 'Catálogo y baremos', link: '/modulos/catalogo' },

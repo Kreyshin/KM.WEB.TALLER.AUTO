@@ -14,6 +14,7 @@ flujo de trabajo real —y discutirlo— antes de escribir una sola tabla.
 | **Ficha de orden**           | Presupuestar, aprobar línea a línea, asignar, detener y reanudar  |
 | **Detenidas**                | Agrupadas por motivo, ordenadas por tiempo parado                 |
 | **Carga de técnicos**        | Horas comprometidas frente a la jornada                           |
+| **Matrícula**                | Cliente y vehículo en una pantalla, con sus tres salidas          |
 | **Clientes y vehículos**     | Alta, edición, búsqueda por placa                                 |
 | **Citas**                    | Agenda del día y de la semana, con cambio de estado               |
 | **Catálogo y baremos**       | Servicios con tiempo estándar y planes de mantenimiento           |

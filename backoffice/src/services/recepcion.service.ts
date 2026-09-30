@@ -1,9 +1,12 @@
 import type {
   CitaResuelta,
   OrdenResuelta,
+  Combustible,
   OrdenTrabajo,
   PrioridadOrden,
   RelacionTenencia,
+  TipoDocumento,
+  Transmision,
   VehiculoResuelto,
 } from '@/types'
 import { clientesService } from './clientes.service'
@@ -38,19 +41,36 @@ export function normalizarPlaca(texto: string): string {
   return limpio.length > 3 ? `${limpio.slice(0, 3)}-${limpio.slice(3)}` : limpio
 }
 
-export interface DatosRecepcion {
-  localId: string
+/** Lo mínimo para que un cliente y su vehículo existan en el sistema. */
+export interface DatosMatricula {
   /** Placa ya normalizada. */
   placa: string
   /** Vehículo conocido; si falta, se crea con los datos de abajo. */
   vehiculoId?: string
   /** Cliente conocido; si falta, se crea con `clienteNuevo`. */
   clienteId?: string
-  clienteNuevo?: { nombre: string; documento: string; telefono?: string }
-  vehiculoNuevo?: { marca: string; modelo: string; anio: number; color?: string }
+  clienteNuevo?: {
+    nombre: string
+    documento: string
+    tipoDocumento?: TipoDocumento
+    telefono?: string
+    email?: string
+  }
+  vehiculoNuevo?: {
+    marca: string
+    modelo: string
+    anio: number
+    color?: string
+    combustible?: Combustible
+    transmision?: Transmision
+  }
+  kilometraje?: number
+}
+
+export interface DatosRecepcion extends DatosMatricula {
+  localId: string
   motivo: string
   prioridad?: PrioridadOrden
-  kilometraje?: number
   /** Cita de la que viene, si venía citado. */
   citaId?: string
   /** Quién atiende el mostrador: firma la comprobación de tenencia. */
@@ -110,17 +130,14 @@ export const recepcionService = {
   },
 
   /**
-   * Abre la orden y deja el vehículo en recepción, listo para la vuelta.
+   * Da de alta lo que falte —cliente, vehículo— y devuelve a quién apuntar el
+   * trabajo. **No abre ninguna orden.**
    *
-   * Crea por el camino lo que haga falta —cliente, vehículo— porque en el
-   * mostrador no se puede pedir al cliente que vuelva mañana cuando alguien
-   * haya dado de alta su coche.
+   * Existe aparte porque matricular y recibir son dos cosas distintas que el
+   * sistema confundía: quien llama por teléfono el martes para venir el jueves
+   * ya es cliente del taller, aunque su coche no esté aquí todavía.
    */
-  async recibir(datos: DatosRecepcion): Promise<OrdenTrabajo> {
-    if (!datos.motivo?.trim()) {
-      throw errorCampo('motivo', 'Anota con qué viene el cliente.')
-    }
-
+  async matricular(datos: DatosMatricula): Promise<{ clienteId: string; vehiculoId: string }> {
     let clienteId = datos.clienteId
     if (!clienteId) {
       const nuevo = datos.clienteNuevo
@@ -128,11 +145,12 @@ export const recepcionService = {
         throw errorCampo('nombre', 'Necesitamos a nombre de quién entra el vehículo.')
       }
       const cliente = await clientesService.crear({
-        tipoDocumento: 'dni',
+        tipoDocumento: nuevo.tipoDocumento ?? 'dni',
         documento: nuevo.documento.trim(),
         nombre: nuevo.nombre.trim(),
         telefono: nuevo.telefono?.trim() || undefined,
-        esEmpresa: false,
+        email: nuevo.email?.trim() || undefined,
+        esEmpresa: (nuevo.tipoDocumento ?? 'dni') === 'ruc',
         activo: true,
       })
       clienteId = cliente.id
@@ -151,8 +169,8 @@ export const recepcionService = {
         modelo: nuevo.modelo.trim(),
         anio: nuevo.anio,
         color: nuevo.color?.trim() || undefined,
-        combustible: 'gasolina',
-        transmision: 'manual',
+        combustible: nuevo.combustible ?? 'gasolina',
+        transmision: nuevo.transmision ?? 'manual',
         kilometraje: datos.kilometraje ?? 0,
         activo: true,
       })
@@ -160,6 +178,23 @@ export const recepcionService = {
     } else if (datos.kilometraje) {
       await vehiculosService.registrarKilometraje(vehiculoId, datos.kilometraje)
     }
+
+    return { clienteId, vehiculoId }
+  },
+
+  /**
+   * Abre la orden y deja el vehículo en recepción, listo para la vuelta.
+   *
+   * Crea por el camino lo que haga falta —cliente, vehículo— porque en el
+   * mostrador no se puede pedir al cliente que vuelva mañana cuando alguien
+   * haya dado de alta su coche.
+   */
+  async recibir(datos: DatosRecepcion): Promise<OrdenTrabajo> {
+    if (!datos.motivo?.trim()) {
+      throw errorCampo('motivo', 'Anota con qué viene el cliente.')
+    }
+
+    const { clienteId, vehiculoId } = await this.matricular(datos)
 
     /*
      * La comprobación de tenencia, según mande la cadena. Se hace aquí y no en
