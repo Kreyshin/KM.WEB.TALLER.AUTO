@@ -82,6 +82,43 @@ function nuevaHoja(): Inspeccion {
   }
 }
 
+/**
+ * La hoja con la que se abre la pantalla, venga de donde venga.
+ *
+ * Una hoja guardada por una versión anterior puede no traer todos los campos
+ * —la demo guarda en el navegador y sobrevive a los despliegues—, y la
+ * plantilla recorre esas listas al pintar: si falta una, la pantalla no da un
+ * error, **desaparece**. Rellenar aquí lo que falte es lo que impide que un
+ * dato viejo deje al asesor mirando una página en blanco.
+ */
+function normalizarHoja(o: OrdenResuelta): Inspeccion {
+  const guardada = o.inspeccion
+  const firmantePropuesto = {
+    // Se propone quien consta como cliente de la orden; si firma otro, se
+    // corrige aquí, que es cuando está delante.
+    nombre: o.cliente?.nombre ?? '',
+    tipoDocumento: o.cliente?.tipoDocumento ?? ('dni' as const),
+    documento: o.cliente?.documento ?? '',
+  }
+
+  if (!guardada) {
+    return {
+      ...nuevaHoja(),
+      kilometraje: o.vehiculo?.kilometraje ?? 0,
+      firmante: firmantePropuesto,
+    }
+  }
+
+  return {
+    ...nuevaHoja(),
+    ...guardada,
+    marcas: guardada.marcas ?? [],
+    puntos: guardada.puntos ?? {},
+    pertenencias: guardada.pertenencias ?? [],
+    firmante: guardada.firmante ?? firmantePropuesto,
+  }
+}
+
 const ordenId = computed(() => (route.params.ordenId as string | undefined) ?? null)
 
 /** Los puntos se agrupan como se recorre el coche: fuera, dentro, debajo. */
@@ -112,26 +149,7 @@ async function cargar() {
   try {
     if (ordenId.value) {
       orden.value = await ordenesService.obtenerResuelta(ordenId.value)
-      hoja.value = orden.value.inspeccion
-        ? {
-            ...orden.value.inspeccion,
-            firmante: orden.value.inspeccion.firmante ?? {
-              nombre: orden.value.cliente?.nombre ?? '',
-              tipoDocumento: orden.value.cliente?.tipoDocumento ?? 'dni',
-              documento: orden.value.cliente?.documento ?? '',
-            },
-          }
-        : {
-            ...nuevaHoja(),
-            kilometraje: orden.value.vehiculo?.kilometraje ?? 0,
-            // Se propone quien consta como cliente de la orden; si firma otro,
-            // se corrige aquí, que es cuando está delante.
-            firmante: {
-              nombre: orden.value.cliente?.nombre ?? '',
-              tipoDocumento: orden.value.cliente?.tipoDocumento ?? 'dni',
-              documento: orden.value.cliente?.documento ?? '',
-            },
-          }
+      hoja.value = normalizarHoja(orden.value)
     } else {
       orden.value = null
       pendientes.value = await ordenesService.sinInspeccion(localId)
