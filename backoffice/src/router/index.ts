@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router
 import type { RouteRecordRaw } from 'vue-router'
 import type { Rol } from '@/types'
 import { useAuthStore } from '@/stores/auth.store'
+import { esTrozoPerdido, recargarUnaVez, registrarFallo } from '@/utils/fallos'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -220,4 +221,18 @@ router.beforeEach((to) => {
 
 router.afterEach((to) => {
   document.title = to.meta.titulo ? `${to.meta.titulo} · Torque` : 'Torque · Gestión de taller'
+})
+
+/*
+ * Una vista que no se descarga deja la pantalla vacía sin que nada falle a la
+ * vista: el router se queda a medias y nadie lo cuenta. Casi siempre es una
+ * versión nueva recién publicada contra una pestaña vieja, y recargar basta.
+ */
+router.onError((e) => {
+  if (esTrozoPerdido(e) && recargarUnaVez()) return
+  registrarFallo({
+    mensaje: e instanceof Error ? e.message : String(e),
+    detalle: e instanceof Error ? e.stack : undefined,
+    origen: 'navegacion',
+  })
 })

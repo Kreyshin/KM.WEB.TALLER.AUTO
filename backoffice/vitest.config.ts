@@ -7,6 +7,8 @@ import vue from '@vitejs/plugin-vue'
  * aporta nada en un entorno jsdom y sí alarga el arranque.
  */
 export default defineConfig({
+  // La inyecta `vite.config.ts` en los builds; aquí basta con que exista.
+  define: { __VERSION__: JSON.stringify('pruebas') },
   plugins: [vue()],
   resolve: {
     alias: {
