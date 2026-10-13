@@ -3,16 +3,18 @@ import { db, latencia } from './mock/db'
 
 export const authService = {
   /**
-   * Mock: cualquier contraseña es válida para un email existente.
-   * Reemplazar por `http.post<Sesion>('/auth/login', { email, password })`.
+   * Mock: cualquier contraseña es válida para un usuario existente.
+   * Reemplazar por `http.post<Sesion>('/auth/login', { usuario, password })`.
    */
-  async login(email: string, _password: string): Promise<Sesion> {
-    const usuario = db.usuarios.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
+  async login(nombreUsuario: string, _password: string): Promise<Sesion> {
+    const usuario = db.usuarios.find(
+      (u) => u.email.split('@')[0]!.toLowerCase() === nombreUsuario.trim().toLowerCase(),
+    )
     await latencia(null, 400)
     if (!usuario) {
       throw {
-        mensaje: 'No existe una cuenta con ese correo.',
-        campos: { email: 'Correo no registrado' },
+        mensaje: 'No existe una cuenta con ese usuario.',
+        campos: { usuario: 'Usuario no registrado' },
       }
     }
     if (!usuario.activo) {

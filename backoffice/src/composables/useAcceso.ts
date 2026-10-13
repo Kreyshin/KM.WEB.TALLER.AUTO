@@ -5,16 +5,16 @@ import { useUiStore } from '@/stores/ui.store'
 import type { ApiError } from '@/types'
 
 export interface CuentaDemo {
-  email: string
+  usuario: string
   rol: string
 }
 
 /** Accesos rápidos para probar las guardas por rol sin backend. */
 export const cuentasDemo: CuentaDemo[] = [
-  { email: 'admin@torqueautos.pe', rol: 'Administrador' },
-  { email: 'patricia@torqueautos.pe', rol: 'Asesor de servicio' },
-  { email: 'oscar@torqueautos.pe', rol: 'Técnico' },
-  { email: 'elmer@torqueautos.pe', rol: 'Almacén' },
+  { usuario: 'admin', rol: 'Administrador' },
+  { usuario: 'patricia', rol: 'Asesor de servicio' },
+  { usuario: 'oscar', rol: 'Técnico' },
+  { usuario: 'elmer', rol: 'Almacén' },
 ]
 
 /**
@@ -29,8 +29,8 @@ export function useAcceso() {
   const router = useRouter()
   const route = useRoute()
 
-  const email = ref(cuentasDemo[0]!.email)
-  const password = ref('demo')
+  const usuario = ref('')
+  const password = ref('')
   const errores = ref<Record<string, string>>({})
   const errorGeneral = ref('')
 
@@ -38,8 +38,8 @@ export function useAcceso() {
     errores.value = {}
     errorGeneral.value = ''
 
-    if (!email.value.trim()) {
-      errores.value.email = 'Ingresa tu correo.'
+    if (!usuario.value.trim()) {
+      errores.value.usuario = 'Ingresa tu usuario.'
       return
     }
     if (!password.value) {
@@ -48,7 +48,7 @@ export function useAcceso() {
     }
 
     try {
-      const sesion = await auth.login(email.value, password.value)
+      const sesion = await auth.login(usuario.value, password.value)
       ui.exito(`Bienvenido, ${sesion.usuario.nombre.split(' ')[0]}.`)
       const destino = (route.query.redirect as string) || '/inicio'
       router.push(destino)
@@ -59,5 +59,5 @@ export function useAcceso() {
     }
   }
 
-  return { auth, email, password, errores, errorGeneral, enviar, cuentasDemo }
+  return { auth, usuario, password, errores, errorGeneral, enviar, cuentasDemo }
 }
